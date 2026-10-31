@@ -7,6 +7,9 @@
 // central) connects and writes one signed byte ~30 times/second.
 //
 // The phone counts as a connected controller while writes keep arriving (CONNECTED_TIMEOUT_MS).
+// When BlueZ tells us which device is writing, its link drop is reported right away, so we can
+// afford a longer silence (LINKED_TIMEOUT_MS): Android stalls writes for a second or two while
+// it settles a fresh connection, and that must not pause the game.
 // See docs/ARCHITECTURE.md for the GATT contract.
 
 const dbus = require('dbus-next');
@@ -19,6 +22,7 @@ const STEER_UUID = '8f1c0a21-5b7e-4d2a-9c3e-1a2b3c4d5e60';
 const LOCAL_NAME = 'Cami';
 
 const CONNECTED_TIMEOUT_MS = 1500; // no write for this long -> the BLE controller is gone
+const LINKED_TIMEOUT_MS = 6000; // same, when we know the writing device (its link drop is signalled)
 const WATCHDOG_MS = 5000; // re-check registration / advertising this often
 
 const BLUEZ = 'org.bluez';
@@ -210,7 +214,7 @@ function startBle({ onSteer, onConnectedChange, adapter = process.env.BLE_ADAPTE
       onConnectedChange(true);
     }
     clearTimeout(timeoutTimer);
-    timeoutTimer = setTimeout(dropController, CONNECTED_TIMEOUT_MS);
+    timeoutTimer = setTimeout(dropController, state.device ? LINKED_TIMEOUT_MS : CONNECTED_TIMEOUT_MS);
     onSteer(byteToSteer(byte));
   }
 
@@ -218,7 +222,7 @@ function startBle({ onSteer, onConnectedChange, adapter = process.env.BLE_ADAPTE
     clearTimeout(timeoutTimer);
     if (!state.connected) return;
     state.connected = false;
-    info('phone disconnected (no steering for 1.5 s)');
+    info(`phone disconnected (no steering for ${(state.device ? LINKED_TIMEOUT_MS : CONNECTED_TIMEOUT_MS) / 1000} s)`);
     onConnectedChange(false);
   }
 
@@ -402,7 +406,10 @@ function startBle({ onSteer, onConnectedChange, adapter = process.env.BLE_ADAPTE
           info(`device ${dev} connected`);
         } else {
           info(`device ${dev} disconnected`);
-          if (path === state.device) dropController(); // our phone: don't wait for the timeout
+          if (path === state.device) {
+            dropController(); // our phone: don't wait for the timeout
+            state.device = null; // until it writes again, assume nothing about the link
+          }
           // Make sure we are advertising again so the phone can reconnect.
           setTimeout(sync, 1000);
         }
