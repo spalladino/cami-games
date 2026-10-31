@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Corpus inspector — dino footprints</title>
+<style>
+  body{font:15px/1.5 system-ui,sans-serif; margin:0; padding:20px; background:#fafaf8; color:#222}
+  h1{margin:0 0 4px; font-size:22px}
+  .sub{color:#666; margin:0 0 18px}
+  .warn{background:#fff4d6; border-left:4px solid #e0a800; padding:10px 14px; margin:0 0 18px; border-radius:4px}
+  table{border-collapse:collapse; width:100%; background:#fff}
+  th,td{border:1px solid #ddd; padding:10px; vertical-align:top; text-align:left}
+  th{background:#f0efe9; position:sticky; top:0}
+  td.img{width:190px; text-align:center}
+  td.img img{width:170px; height:170px; object-fit:contain;
+    background:repeating-conic-gradient(#eee 0 25%,#fff 0 50%) 0 0/16px 16px; border-radius:6px}
+  code{background:#f2f2ee; padding:1px 5px; border-radius:3px; font-size:12px}
+  .type{display:inline-block; background:#e3eef7; border:1px solid #b8d4e8; padding:2px 8px;
+    border-radius:10px; font-size:12px; font-family:ui-monospace,monospace}
+  .dupe{background:#ffe0e0; border-color:#e79a9a}
+  .cred{font-size:12px; color:#555; margin-top:6px}
+  .cred a{color:#0a58ca}
+  .name{font-size:17px; font-weight:600}
+  .es{color:#666; font-style:italic}
+  .kid{margin:6px 0 0}
+  .pairs{display:flex; gap:6px; align-items:center; justify-content:center}
+  .arrow{font-size:22px; color:#999}
+</style>
+</head>
+<body>
+<h1>Footprint corpus — inspection</h1>
+<p class="sub">Every footprint/dinosaur pair that ships in <code>dino-game.html</code>.
+   Images are the exact, final, embedded ones the game uses.</p>
+<p class="sub">Footprints are simplified learning drawings, not evidence of an exact species.
+   Related dinosaurs deliberately share a footprint type.</p>
+<div id="warnings"></div>
+<table>
+  <thead><tr>
+    <th>#</th><th>Footprint → Dinosaur</th><th>Name</th><th>Track type</th><th>Sources</th>
+  </tr></thead>
+  <tbody id="rows"></tbody>
+</table>
+
+<script>
+const CORPUS = __CORPUS_JSON__;
+
+const esc = s => String(s ?? "").replace(/[<>&]/g, c => ({"<":"&lt;",">":"&gt;","&":"&amp;"}[c]));
+const link = (u, t) => u ? `<a href="${esc(u)}" target="_blank" rel="noopener">${esc(t || u)}</a>` : "—";
+
+// Two dinosaurs sharing a track type is intentional (they are never offered in the
+// same round) — but flag it so it is a deliberate choice, not a surprise.
+const byType = {};
+CORPUS.forEach(e => (byType[e.trackType] ||= []).push(e.slug));
+const dupes = Object.entries(byType).filter(([, v]) => v.length > 1);
+const warn = [];
+if (CORPUS.length < 3) warn.push("Fewer than 3 pairs — the game cannot build a round.");
+dupes.forEach(([t, v]) => warn.push(
+  `Track type <code>${esc(t)}</code> is shared by ${v.map(esc).join(", ")} — these will never appear in the same round.`));
+document.getElementById("warnings").innerHTML =
+  warn.map(w => `<div class="warn">⚠︎ ${w}</div>`).join("") ||
+  `<div class="warn" style="background:#e6f7e6;border-color:#3a3">✓ ${CORPUS.length} pairs, ` +
+  `${Object.keys(byType).length} distinct track types, no issues.</div>`;
+
+document.getElementById("rows").innerHTML = CORPUS.map((e, i) => {
+  const cf = e._credit?.footprint || {}, cd = e._credit?.dino || {};
+  const kb = o => o ? Math.round(o / 1024) + " KB" : "?";
+  return `<tr>
+    <td>${i + 1}</td>
+    <td class="img">
+      <div class="pairs">
+        <img src="${e.footprint}" alt="footprint">
+        <span class="arrow">→</span>
+        <img src="${e.image}" alt="${esc(e.name.en)}">
+      </div>
+    </td>
+    <td>
+      <div class="name">${esc(e.name.en)}</div>
+      <div class="es">${esc(e.name.es)}</div>
+      <div class="kid">${esc(e.kidDescription.en)}</div>
+      <div class="kid es">${esc(e.kidDescription.es)}</div>
+      <div class="cred">slug <code>${esc(e.slug)}</code></div>
+    </td>
+    <td>
+      <span class="type ${dupes.some(([t]) => t === e.trackType) ? "dupe" : ""}">${esc(e.trackType)}</span>
+      <div class="cred">ichnogenus: ${esc(e.ichnogenus) || "—"}</div>
+      <div class="cred">embedded: ${kb(e._bytes?.footprint)} + ${kb(e._bytes?.dino)}</div>
+    </td>
+    <td>
+      <div class="cred"><b>Footprint</b> — ${esc(cf.kind || "")}<br>
+        ${esc(cf.author || "?")} · ${cf.license_url ? link(cf.license_url, cf.license) : esc(cf.license || "?")}<br>
+        ${link(cf.source_page || cf.commons_page || cf.url, "source")}<br>
+        <code>${esc(e._files?.footprint || "")}</code></div>
+      <div class="cred" style="margin-top:8px"><b>Dinosaur</b><br>
+        ${esc(cd.author || "?")} · ${cd.license_url ? link(cd.license_url, cd.license) : esc(cd.license || "?")}<br>
+        ${esc(cd.modifications || "")}<br>
+        ${link(cd.commons_page || cd.source_page || cd.url, "source")}<br>
+        <code>${esc(e._files?.dino || "")}</code></div>
+    </td>
+  </tr>`;
+}).join("");
+</script>
+</body>
+</html>

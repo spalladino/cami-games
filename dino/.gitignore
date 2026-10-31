@@ -1,0 +1,15 @@
+# Original downloads, re-fetched by tools/fetch_assets.py
+_raw/
+# Unused fossil-photo crops (re-fetched by tools/fetch_assets.py)
+assets/footprints/*.jpg
+# Butterfly Creek worksheet artwork: personal use only, not redistributable.
+# These six silhouettes, and everything built from them, stay local.
+assets/footprints/diplodocus.png
+assets/footprints/triceratops.png
+assets/footprints/stegosaurus.png
+assets/footprints/tyrannosaurus-rex.png
+assets/footprints/velociraptor.png
+assets/footprints/spinosaurus.png
+dino-game.html
+corpus.html
+footprint-preview.png

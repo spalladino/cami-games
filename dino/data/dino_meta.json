@@ -1,0 +1,181 @@
+{
+  "_comment": "Curated per-dinosaur metadata. `trackType` is the key to fairness: the game only ever offers decoys whose trackType differs from the answer's, so the three footprints in a round are never confusable for a small child.",
+  "tyrannosaurus-rex": {
+    "name": {
+      "en": "Tyrannosaurus rex",
+      "es": "Tiranosaurio rex"
+    },
+    "trackType": "theropod-3toe-sharp",
+    "kid": {
+      "en": "Three huge toes with sharp, pointy claws.",
+      "es": "Tres dedos enormes con garras filosas."
+    }
+  },
+  "allosaurus": {
+    "name": {
+      "en": "Allosaurus",
+      "es": "Alosaurio"
+    },
+    "trackType": "theropod-3toe-sharp",
+    "priority": 3,
+    "kid": {
+      "en": "Three long toes with pointy claw tips.",
+      "es": "Tres dedos largos con puntas de garras filosas."
+    }
+  },
+  "dilophosaurus": {
+    "name": {
+      "en": "Dilophosaurus",
+      "es": "Dilofosaurio"
+    },
+    "trackType": "theropod-3toe-sharp",
+    "priority": 2,
+    "kid": {
+      "en": "Three clawed toes from a big crested hunter.",
+      "es": "Tres dedos con garras de un cazador grande con cresta."
+    }
+  },
+  "coelophysis": {
+    "name": {
+      "en": "Coelophysis",
+      "es": "Celofisis"
+    },
+    "trackType": "theropod-3toe-small",
+    "kid": {
+      "en": "A tiny, skinny three-toed print, just like a bird's.",
+      "es": "Una huellita finita de tres dedos, como la de un pájaro."
+    }
+  },
+  "velociraptor": {
+    "name": {
+      "en": "Velociraptor",
+      "es": "Velociraptor"
+    },
+    "trackType": "dromaeosaur-2toe",
+    "kid": {
+      "en": "Only TWO toes! The big curved claw stayed up in the air.",
+      "es": "¡Solo DOS dedos! La garra curva iba levantada en el aire."
+    }
+  },
+  "deinonychus": {
+    "name": {
+      "en": "Deinonychus",
+      "es": "Deinonico"
+    },
+    "trackType": "dromaeosaur-2toe",
+    "kid": {
+      "en": "Two toes on the ground! The big curved claw stayed lifted.",
+      "es": "¡Dos dedos en el suelo! La garra grande y curva iba levantada."
+    }
+  },
+  "brachiosaurus": {
+    "name": {
+      "en": "Brachiosaurus",
+      "es": "Braquiosaurio"
+    },
+    "trackType": "sauropod-round",
+    "kid": {
+      "en": "A big, rounded footprint from a long-necked plant eater.",
+      "es": "Una huella grande y redondeada de un dinosaurio de cuello largo que comía plantas."
+    }
+  },
+  "apatosaurus": {
+    "name": {
+      "en": "Apatosaurus",
+      "es": "Apatosaurio"
+    },
+    "trackType": "sauropod-round",
+    "kid": {
+      "en": "A big, rounded footprint from a long-necked plant eater.",
+      "es": "Una huella grande y redondeada de un dinosaurio de cuello largo que comía plantas."
+    }
+  },
+  "diplodocus": {
+    "name": {
+      "en": "Diplodocus",
+      "es": "Diplodocus"
+    },
+    "trackType": "sauropod-round",
+    "kid": {
+      "en": "A giant round foot with little bumpy claws on top.",
+      "es": "Un pie redondo gigante con garritas arriba."
+    }
+  },
+  "iguanodon": {
+    "name": {
+      "en": "Iguanodon",
+      "es": "Iguanodonte"
+    },
+    "trackType": "ornithopod-3toe-blunt",
+    "kid": {
+      "en": "Three rounded toes stretching out from a small heel.",
+      "es": "Tres dedos redondeados que salen de un talón chiquito."
+    }
+  },
+  "edmontosaurus": {
+    "name": {
+      "en": "Edmontosaurus",
+      "es": "Edmontosaurio"
+    },
+    "trackType": "ornithopod-3toe-blunt",
+    "kid": {
+      "en": "A big three-toed print shaped like a clover leaf.",
+      "es": "Una huella grande de tres dedos con forma de trébol."
+    }
+  },
+  "parasaurolophus": {
+    "name": {
+      "en": "Parasaurolophus",
+      "es": "Parasaurolofo"
+    },
+    "trackType": "ornithopod-3toe-blunt",
+    "kid": {
+      "en": "Three broad, rounded toes and a wide heel.",
+      "es": "Tres dedos anchos y redonditos, con un talón bien ancho."
+    }
+  },
+  "stegosaurus": {
+    "name": {
+      "en": "Stegosaurus",
+      "es": "Estegosaurio"
+    },
+    "trackType": "thyreophoran-blunt",
+    "kid": {
+      "en": "A round foot with spiky, pointy toes all around.",
+      "es": "Un pie redondo con dedos puntiagudos alrededor."
+    }
+  },
+  "ankylosaurus": {
+    "name": {
+      "en": "Ankylosaurus",
+      "es": "Anquilosaurio"
+    },
+    "trackType": "ankylosaur-4toe",
+    "kid": {
+      "en": "FOUR fat toes — like a little armoured tank.",
+      "es": "CUATRO dedos gordos, como un tanquecito con armadura."
+    }
+  },
+  "triceratops": {
+    "name": {
+      "en": "Triceratops",
+      "es": "Triceratops"
+    },
+    "trackType": "ceratopsian-round",
+    "kid": {
+      "en": "A round print with short stubby toes, like a rhino's.",
+      "es": "Una huella redonda con dedos cortitos, como la de un rinoceronte."
+    }
+  },
+  "spinosaurus": {
+    "name": {
+      "en": "Spinosaurus",
+      "es": "Espinosaurio"
+    },
+    "trackType": "theropod-3toe-sharp",
+    "kid": {
+      "en": "Three wide toes spread far apart, with a big heel.",
+      "es": "Tres dedos anchos bien separados, con un talón grande."
+    }
+  }
+}

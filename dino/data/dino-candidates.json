@@ -1,0 +1,207 @@
+[
+  {
+    "dinosaur": "tyrannosaurus-rex",
+    "candidates": [
+      {
+        "url": "https://upload.wikimedia.org/wikipedia/commons/7/7a/Life_reconstruction_of_Tyrannosaurus_rex_specimen_TMP_1981.006.0001_%28%22Black_Beauty%22%29.png",
+        "commons_page": "https://commons.wikimedia.org/wiki/File:Life_reconstruction_of_Tyrannosaurus_rex_specimen_TMP_1981.006.0001_(%22Black_Beauty%22).png",
+        "license": "CC BY-SA (see Commons page)",
+        "author": "see Commons page",
+        "background": "transparent?"
+      },
+      {
+        "url": "https://upload.wikimedia.org/wikipedia/commons/c/c7/Tyrannosaurus-rex-Profile-steveoc86_%28coloured%29.png",
+        "commons_page": "https://commons.wikimedia.org/wiki/File:Tyrannosaurus-rex-Profile-steveoc86_(coloured).png",
+        "license": "CC BY-SA (see Commons page)",
+        "author": "Steveoc 86",
+        "background": "transparent?"
+      },
+      {
+        "url": "https://upload.wikimedia.org/wikipedia/commons/0/0d/Tyrannosaurus_rex_by_abelov2014.jpg",
+        "commons_page": "https://commons.wikimedia.org/wiki/File:Tyrannosaurus_rex_by_abelov2014.jpg",
+        "license": "CC BY-SA (see Commons page)",
+        "author": "abelov2014",
+        "background": "scene"
+      }
+    ]
+  },
+  {
+    "dinosaur": "triceratops",
+    "candidates": [
+      {
+        "url": "https://upload.wikimedia.org/wikipedia/commons/0/08/Triceratops_horridus.png",
+        "commons_page": "https://commons.wikimedia.org/wiki/File:Triceratops_horridus.png",
+        "license": "CC BY-SA (see Commons page)",
+        "author": "see Commons page",
+        "background": "transparent?"
+      },
+      {
+        "url": "https://upload.wikimedia.org/wikipedia/commons/9/96/Triceratops4_NT_small.jpg",
+        "commons_page": "https://commons.wikimedia.org/wiki/File:Triceratops4_NT_small.jpg",
+        "license": "CC BY (see Commons page)",
+        "author": "Nobu Tamura",
+        "background": "white"
+      }
+    ]
+  },
+  {
+    "dinosaur": "stegosaurus",
+    "candidates": [
+      {
+        "url": "https://upload.wikimedia.org/wikipedia/commons/d/d8/Stegosaurus_stenops_Life_Reconstruction.png",
+        "commons_page": "https://commons.wikimedia.org/wiki/File:Stegosaurus_stenops_Life_Reconstruction.png",
+        "license": "CC BY-SA (see Commons page)",
+        "author": "see Commons page",
+        "background": "transparent?"
+      },
+      {
+        "url": "https://upload.wikimedia.org/wikipedia/commons/0/05/Stegosaurus_stenops.png",
+        "commons_page": "https://commons.wikimedia.org/wiki/File:Stegosaurus_stenops.png",
+        "license": "CC BY-SA (see Commons page)",
+        "author": "see Commons page",
+        "background": "transparent?"
+      }
+    ]
+  },
+  {
+    "dinosaur": "velociraptor",
+    "candidates": [
+      {
+        "url": "https://upload.wikimedia.org/wikipedia/commons/e/e4/Velociraptor_recon.png",
+        "commons_page": "https://commons.wikimedia.org/wiki/File:Velociraptor_recon.png",
+        "license": "CC BY-SA (see Commons page)",
+        "author": "see Commons page",
+        "background": "transparent?"
+      },
+      {
+        "url": "https://upload.wikimedia.org/wikipedia/commons/7/7f/Shri_devi.jpg",
+        "commons_page": "https://commons.wikimedia.org/wiki/File:Shri_devi.jpg",
+        "license": "CC BY-SA (see Commons page)",
+        "author": "see Commons page",
+        "background": "scene"
+      }
+    ]
+  },
+  {
+    "dinosaur": "spinosaurus",
+    "candidates": [
+      {
+        "url": "https://upload.wikimedia.org/wikipedia/commons/e/e4/Spinosaurus_aegyptiacus_life_reconstruction.png",
+        "commons_page": "https://commons.wikimedia.org/wiki/File:Spinosaurus_aegyptiacus_life_reconstruction.png",
+        "license": "CC BY-SA (see Commons page)",
+        "author": "see Commons page",
+        "background": "transparent?"
+      },
+      {
+        "url": "https://upload.wikimedia.org/wikipedia/commons/9/9b/Life_reconstruction_of_Spinosaurus_aegyptiacus.png",
+        "commons_page": "https://commons.wikimedia.org/wiki/File:Life_reconstruction_of_Spinosaurus_aegyptiacus.png",
+        "license": "CC BY-SA (see Commons page)",
+        "author": "see Commons page",
+        "background": "transparent?"
+      }
+    ]
+  },
+  {
+    "dinosaur": "diplodocus",
+    "candidates": [
+      {
+        "url": "https://upload.wikimedia.org/wikipedia/commons/0/08/Diplodocus_carnegii.jpg",
+        "commons_page": "https://commons.wikimedia.org/wiki/File:Diplodocus_carnegii.jpg",
+        "license": "CC BY-SA (see Commons page)",
+        "author": "see Commons page",
+        "background": "white?"
+      },
+      {
+        "url": "https://upload.wikimedia.org/wikipedia/commons/3/34/Diplodocus_carnegii_%28flipped%2C_cropped%29.jpg",
+        "commons_page": "https://commons.wikimedia.org/wiki/File:Diplodocus_carnegii_(flipped,_cropped).jpg",
+        "license": "CC BY-SA (see Commons page)",
+        "author": "see Commons page",
+        "background": "white?"
+      }
+    ]
+  },
+  {
+    "dinosaur": "allosaurus",
+    "candidates": [
+      {
+        "url": "https://upload.wikimedia.org/wikipedia/commons/3/3d/Allosaurus_Revised.jpg",
+        "commons_page": "https://commons.wikimedia.org/wiki/File:Allosaurus_Revised.jpg",
+        "author": "Fred Wierum",
+        "license": "CC BY-SA 4.0",
+        "background": "white",
+        "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+        "modifications": "Resized to at most 900 pixels; transparent margins trimmed where present."
+      }
+    ]
+  },
+  {
+    "dinosaur": "apatosaurus",
+    "candidates": [
+      {
+        "url": "https://upload.wikimedia.org/wikipedia/commons/d/dd/Apatosaurus_louisae.png",
+        "commons_page": "https://commons.wikimedia.org/wiki/File:Apatosaurus_louisae.png",
+        "author": "Connor Ashbridge",
+        "license": "CC BY 4.0",
+        "background": "transparent",
+        "license_url": "https://creativecommons.org/licenses/by/4.0/",
+        "modifications": "Resized to at most 900 pixels; transparent margins trimmed where present."
+      }
+    ]
+  },
+  {
+    "dinosaur": "brachiosaurus",
+    "candidates": [
+      {
+        "url": "https://upload.wikimedia.org/wikipedia/commons/0/07/202009_Brachiosaurus_altithorax.png",
+        "commons_page": "https://commons.wikimedia.org/wiki/File:202009_Brachiosaurus_altithorax.png",
+        "author": "DataBase Center for Life Science (DBCLS)",
+        "license": "CC BY 4.0",
+        "background": "transparent",
+        "license_url": "https://creativecommons.org/licenses/by/4.0/",
+        "modifications": "Resized to at most 900 pixels; transparent margins trimmed where present."
+      }
+    ]
+  },
+  {
+    "dinosaur": "deinonychus",
+    "candidates": [
+      {
+        "url": "https://upload.wikimedia.org/wikipedia/commons/3/33/Deinonychus_ewilloughby.png",
+        "commons_page": "https://commons.wikimedia.org/wiki/File:Deinonychus_ewilloughby.png",
+        "author": "Emily Willoughby",
+        "license": "CC BY-SA 4.0",
+        "background": "white",
+        "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+        "modifications": "Resized to at most 900 pixels; transparent margins trimmed where present."
+      }
+    ]
+  },
+  {
+    "dinosaur": "iguanodon",
+    "candidates": [
+      {
+        "url": "https://upload.wikimedia.org/wikipedia/commons/0/0d/Iguanodon_new_NT_transparent.png",
+        "commons_page": "https://commons.wikimedia.org/wiki/File:Iguanodon_new_NT_transparent.png",
+        "author": "Nobu Tamura",
+        "license": "CC BY-SA 4.0",
+        "background": "transparent",
+        "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+        "modifications": "Resized to at most 900 pixels; transparent margins trimmed where present."
+      }
+    ]
+  },
+  {
+    "dinosaur": "parasaurolophus",
+    "candidates": [
+      {
+        "url": "https://upload.wikimedia.org/wikipedia/commons/f/f4/Life_reconstruction_of_Parasaurolophus_walkeri.png",
+        "commons_page": "https://commons.wikimedia.org/wiki/File:Life_reconstruction_of_Parasaurolophus_walkeri.png",
+        "author": "Connor Ashbridge",
+        "license": "CC BY-SA 4.0",
+        "background": "transparent",
+        "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+        "modifications": "Resized to at most 900 pixels; transparent margins trimmed where present."
+      }
+    ]
+  }
+]

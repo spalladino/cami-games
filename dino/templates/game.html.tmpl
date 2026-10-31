@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Dino Detective — Whose Footprint?</title>
+<style>
+  :root{
+    --sand:#f6e7c8; --sand-dk:#e8d3a9; --clay:#c9784a; --clay-dk:#a85c34;
+    --leaf:#4c9a5e; --leaf-dk:#3a7d49; --sky:#7ec8e3; --night:#3d2b1f;
+    --ink:#4a3524; --paper:#fffaf0; --sun:#f7c948; --berry:#e0576b;
+    --shadow:0 6px 0 rgba(0,0,0,.16), 0 12px 24px rgba(0,0,0,.14);
+    --round:26px;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
+  /* Blink/WebKit reset text-transform on form controls, so buttons would stay
+     lower case while everything else went to capitals. */
+  button,input,select,textarea{text-transform:inherit}
+  html,body{height:100%}
+  body{
+    margin:0; font-family:'Comic Sans MS','Chalkboard SE','Marker Felt',
+      'Trebuchet MS',system-ui,sans-serif;
+    /* She recognises capitals but not lower case yet. */
+    text-transform:uppercase;
+    color:var(--ink); background:var(--sand);
+    background-image:
+      radial-gradient(circle at 12% 18%, rgba(255,255,255,.55) 0 2px, transparent 3px),
+      radial-gradient(circle at 76% 42%, rgba(0,0,0,.05) 0 3px, transparent 4px),
+      radial-gradient(circle at 34% 78%, rgba(0,0,0,.04) 0 2px, transparent 3px),
+      radial-gradient(circle at 88% 88%, rgba(255,255,255,.4) 0 2px, transparent 3px),
+      linear-gradient(180deg,#fbf0d8 0%, #f2decd 100%);
+    background-size:180px 180px,220px 220px,160px 160px,200px 200px,100% 100%;
+    overflow-x:hidden; touch-action:manipulation;
+  }
+  .screen{display:none; min-height:100dvh; flex-direction:column; align-items:center;
+    padding:16px clamp(12px,3vw,28px) 28px; gap:14px}
+  .screen.on{display:flex}
+
+  /* ---------- shared chrome ---------- */
+  .btn{
+    font:inherit; font-weight:700; cursor:pointer; border:none; color:#fff;
+    background:var(--clay); padding:16px 30px; border-radius:999px;
+    font-size:clamp(18px,2.4vw,24px); box-shadow:0 5px 0 var(--clay-dk);
+    transition:transform .08s, box-shadow .08s; letter-spacing:.3px;
+  }
+  .btn:active{transform:translateY(4px); box-shadow:0 1px 0 var(--clay-dk)}
+  .btn.go{background:var(--leaf); box-shadow:0 5px 0 var(--leaf-dk); font-size:clamp(22px,3.4vw,32px); padding:20px 46px}
+  .btn.ghost{background:var(--paper); color:var(--ink); box-shadow:0 4px 0 var(--sand-dk)}
+
+  /* ---------- start ---------- */
+  #start{justify-content:center; text-align:center; gap:22px}
+  .logo{font-size:clamp(46px,11vw,110px); line-height:1; filter:drop-shadow(0 8px 6px rgba(0,0,0,.2))}
+  h1{margin:0; font-size:clamp(30px,7vw,64px); color:var(--clay-dk);
+     text-shadow:3px 3px 0 #fff, 6px 6px 0 rgba(0,0,0,.08)}
+  .tag{margin:0; font-size:clamp(16px,2.6vw,24px); opacity:.8; max-width:22ch}
+  .choose{display:flex; flex-direction:column; align-items:center; gap:10px;
+    background:rgba(255,255,255,.6); padding:18px 26px; border-radius:var(--round);
+    border:3px dashed var(--sand-dk)}
+  .choose span{font-size:clamp(15px,2.2vw,20px); font-weight:700}
+  .pills{display:flex; gap:10px; flex-wrap:wrap; justify-content:center}
+  .pill{font:inherit; font-weight:700; cursor:pointer; border:3px solid var(--sand-dk);
+    background:var(--paper); color:var(--ink); width:64px; height:64px; border-radius:50%;
+    font-size:24px; transition:.12s}
+  .pill[aria-pressed="true"]{background:var(--sun); border-color:var(--clay); transform:scale(1.12)}
+  /* Parent-facing voice tester — deliberately small so it does not compete
+     with the big green Start button. */
+  .voicebox{display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+    justify-content:center; font-size:13px; opacity:.85; max-width:min(94vw,540px)}
+  .voicebox select{font:inherit; font-size:13px; padding:6px 8px; border-radius:8px;
+    border:2px solid var(--sand-dk); background:var(--paper); color:var(--ink);
+    max-width:270px; text-transform:none}
+  .voicebox button{font:inherit; font-size:13px; font-weight:700; cursor:pointer;
+    border:2px solid var(--sand-dk); background:var(--paper); color:var(--ink);
+    border-radius:999px; padding:6px 14px}
+  .voicebox button:active{transform:translateY(2px)}
+  .lang{position:fixed; top:14px; right:14px; display:flex; gap:6px; z-index:30}
+  .lang button{font:inherit; font-weight:700; cursor:pointer; border:3px solid var(--sand-dk);
+    background:var(--paper); border-radius:999px; padding:7px 14px; font-size:15px; color:var(--ink)}
+  .lang button[aria-pressed="true"]{background:var(--leaf); color:#fff; border-color:var(--leaf-dk)}
+
+  /* ---------- play ---------- */
+  /* Clear the fixed EN/ES switcher so the score chip never sits under it. */
+  #play-screen{padding-top:62px}
+  .topbar{width:100%; max-width:1100px; display:flex; align-items:center;
+    justify-content:space-between; gap:12px; flex-wrap:wrap}
+  .dots{display:flex; gap:7px; flex-wrap:wrap}
+  .dot{width:16px; height:16px; border-radius:50%; background:rgba(0,0,0,.13);
+    border:2px solid rgba(0,0,0,.08); transition:.25s}
+  .dot.done{background:var(--leaf); border-color:var(--leaf-dk)}
+  .dot.miss{background:var(--sand-dk); border-color:var(--clay)}
+  .dot.now{background:var(--sun); border-color:var(--clay); transform:scale(1.35)}
+  .score{font-weight:700; font-size:clamp(17px,2.3vw,22px); background:var(--paper);
+    padding:8px 18px; border-radius:999px; box-shadow:0 3px 0 var(--sand-dk); white-space:nowrap}
+
+  .prompt{margin:2px 0 0; font-size:clamp(19px,3.2vw,30px); font-weight:700; text-align:center;
+    color:var(--clay-dk)}
+
+  .print-wrap{position:relative; display:grid; place-items:center}
+  .print{
+    width:clamp(170px,31vw,260px); aspect-ratio:1; border-radius:50%; object-fit:contain;
+    padding:26px; border:8px solid var(--paper); box-shadow:var(--shadow);
+    background:radial-gradient(circle at 38% 32%, #fbf1dc 0%, #ecd9b2 62%, #ddc396 100%);
+  }
+  .print-ring{position:absolute; inset:-14px; border-radius:50%;
+    border:5px dashed var(--clay); opacity:.55; animation:spin 26s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  .cards{display:flex; gap:clamp(10px,2.2vw,22px); flex-wrap:wrap;
+    justify-content:center; width:100%; max-width:1400px}
+  .card{
+    position:relative; flex:1 1 240px; max-width:448px; min-width:190px; cursor:pointer;
+    background:var(--paper); border:none; border-radius:var(--round); padding:12px 12px 14px;
+    box-shadow:var(--shadow); font:inherit; color:inherit; display:flex; flex-direction:column;
+    gap:8px; align-items:center; transition:transform .14s, box-shadow .14s; overflow:hidden;
+  }
+  .card:hover:not(.locked){transform:translateY(-6px) rotate(-.6deg)}
+  /* A little extra height also gives upright, long-necked dinosaurs room. */
+  .card img{width:100%; aspect-ratio:2/1; object-fit:contain; border-radius:18px;
+    background:linear-gradient(180deg,#eaf6ff,#dcefe2); padding:6px}
+  .card .name{font-weight:700; font-size:clamp(17px,2.5vw,28px); text-align:center;
+    line-height:1.18; letter-spacing:.4px}
+  .card.right{outline:7px solid var(--leaf); animation:pop .45s ease}
+  .card.wrong{outline:7px solid var(--berry); animation:shake .45s ease}
+  .card.faded{opacity:.42; filter:grayscale(.55)}
+  .card.locked{cursor:default}
+  .badge{position:absolute; top:8px; right:10px; font-size:34px; opacity:0; transform:scale(.4);
+    transition:.28s cubic-bezier(.34,1.56,.64,1); pointer-events:none}
+  .card.right .badge,.card.wrong .badge{opacity:1; transform:scale(1)}
+  @keyframes pop{0%{transform:scale(1)}45%{transform:scale(1.07)}100%{transform:scale(1)}}
+  @keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-11px)}
+    40%{transform:translateX(9px)}60%{transform:translateX(-6px)}80%{transform:translateX(4px)}}
+
+  .feedback{min-height:58px; display:grid; place-items:center; text-align:center;
+    font-size:clamp(18px,2.9vw,27px); font-weight:700}
+  .feedback .good{color:var(--leaf-dk)}
+  .feedback .again{color:var(--clay-dk)}
+  .fact{display:block; font-size:.72em; font-weight:400; opacity:.78; margin-top:3px}
+
+  /* ---------- end ---------- */
+  #end{justify-content:center; text-align:center; gap:18px}
+  /* Emoji glyphs overflow a tight line box, so give the medal real headroom. */
+  .medal{font-size:clamp(66px,15vw,140px); line-height:1.45; animation:bob 2.4s ease-in-out infinite}
+  @keyframes bob{0%,100%{transform:translateY(0) rotate(-4deg)}50%{transform:translateY(-14px) rotate(4deg)}}
+  .tally{font-size:clamp(26px,5.5vw,50px); font-weight:700; color:var(--clay-dk)}
+  .stars{font-size:clamp(30px,6vw,52px); letter-spacing:6px}
+  .met{display:flex; flex-wrap:wrap; gap:10px; justify-content:center; max-width:820px}
+  .met figure{margin:0; width:104px; background:var(--paper); border-radius:18px; padding:8px;
+    box-shadow:0 4px 0 var(--sand-dk)}
+  .met img{width:100%; aspect-ratio:1; object-fit:contain}
+  .met figcaption{font-size:12px; font-weight:700; line-height:1.15; margin-top:4px}
+  .met figure.miss{opacity:.5}
+
+  canvas#confetti{position:fixed; inset:0; pointer-events:none; z-index:40}
+  @media (prefers-reduced-motion:reduce){*{animation:none !important; transition:none !important}}
+</style>
+</head>
+<body>
+
+<div class="lang" role="group" aria-label="Language">
+  <button id="lang-en" aria-pressed="true">EN</button>
+  <button id="lang-es" aria-pressed="false">ES</button>
+</div>
+
+<!-- ============ START ============ -->
+<section class="screen on" id="start">
+  <div class="logo">🦕🔍</div>
+  <h1 data-t="title">Dino Detective</h1>
+  <p class="tag" data-t="tagline">Look at the footprint. Which dinosaur made it?</p>
+  <div class="choose">
+    <span data-t="howmany">How many rounds?</span>
+    <div class="pills" id="rounds"></div>
+  </div>
+  <button class="btn go" id="play" data-t="start">Let's dig! ⛏️</button>
+  <div class="voicebox">
+    <span data-t="voicelabel">🔊 Voice</span>
+    <select id="voicesel" aria-label="Speech voice"></select>
+    <button id="voicetest" type="button" data-t="voicetest">Test ▶</button>
+  </div>
+</section>
+
+<!-- ============ PLAY ============ -->
+<section class="screen" id="play-screen">
+  <div class="topbar">
+    <div class="dots" id="dots"></div>
+    <div class="score" id="score">⭐ 0</div>
+  </div>
+  <p class="prompt" data-t="whose">Whose footprint is this?</p>
+  <div class="print-wrap">
+    <div class="print-ring"></div>
+    <img class="print" id="print" alt="Fossil dinosaur footprint">
+  </div>
+  <div class="cards" id="cards"></div>
+  <div class="feedback" id="feedback"></div>
+</section>
+
+<!-- ============ END ============ -->
+<section class="screen" id="end">
+  <div class="medal" id="medal">🏆</div>
+  <div class="tally" id="tally"></div>
+  <div class="stars" id="stars"></div>
+  <p class="tag" id="endmsg" style="max-width:26ch"></p>
+  <div class="met" id="met"></div>
+  <button class="btn go" id="again" data-t="again">Play again! 🦖</button>
+</section>
+
+<canvas id="confetti"></canvas>
+
+<script>
+/* ============================================================
+   CORPUS — injected at build time by tools/build.py
+   ============================================================ */
+const CORPUS = __CORPUS_JSON__;
+
+/* ============================================================
+   Copy
+   ============================================================ */
+const T = {
+  en:{
+    title:"Dino Detective", tagline:"Look at the footprint. Which dinosaur made it?",
+    howmany:"How many rounds?", start:"Let's dig! ⛏️", whose:"Whose footprint is this?",
+    again:"Play again! 🦖", round:"Round", score:"⭐",
+    yes:["Yes! 🎉","You got it! 🌟","Great digging! ⛏️","Perfect! 🦴","Wow! 💚"],
+    no:["Try again! 👀","Not that one — look again!","Almost! Keep looking 🔍"],
+    itwas:n=>`It was the ${n}!`,
+    finalTitle:(s,t)=>`You found ${s} of ${t}!`,
+    praise:{hi:"Amazing! You are a real paleontologist! 🦖",
+            mid:"Great job! You know your dinosaurs! 🌟",
+            low:"Nice try! Let's dig again and learn more! ⛏️"},
+    met:"Dinosaurs you met:",
+    voicelabel:"🔊 Voice", voicetest:"Test ▶", novoice:"no voices on this device",
+    sample:"Hi! I am the Tyrannosaurus rex."
+  },
+  es:{
+    title:"Detective de Dinos", tagline:"Mirá la huella. ¿Qué dinosaurio la hizo?",
+    howmany:"¿Cuántas rondas?", start:"¡A excavar! ⛏️", whose:"¿De quién es esta huella?",
+    again:"¡Jugar otra vez! 🦖", round:"Ronda", score:"⭐",
+    yes:["¡Sí! 🎉","¡Muy bien! 🌟","¡Excelente! ⛏️","¡Perfecto! 🦴","¡Guau! 💚"],
+    no:["¡Probá otra vez! 👀","Esa no — ¡mirá bien!","¡Casi! Seguí buscando 🔍"],
+    itwas:n=>`¡Era el ${n}!`,
+    finalTitle:(s,t)=>`¡Encontraste ${s} de ${t}!`,
+    praise:{hi:"¡Increíble! ¡Sos una paleontóloga de verdad! 🦖",
+            mid:"¡Muy bien! ¡Conocés a los dinosaurios! 🌟",
+            low:"¡Buen intento! ¡Vamos a excavar de nuevo! ⛏️"},
+    met:"Dinosaurios que conociste:",
+    voicelabel:"🔊 Voz", voicetest:"Probar ▶", novoice:"no hay voces en este dispositivo",
+    sample:"¡Hola! Soy el Tiranosaurio rex."
+  }
+};
+let lang = "en";
+const t = () => T[lang];
+
+/* ============================================================
+   Sound — synthesised, so the file stays standalone
+   ============================================================ */
+let actx = null;
+const audio = () => (actx ||= new (window.AudioContext||window.webkitAudioContext)());
+function tone(freq, start, dur, type="sine", vol=.22){
+  const a = audio(), o = a.createOscillator(), g = a.createGain();
+  o.type = type; o.frequency.value = freq;
+  g.gain.setValueAtTime(0, a.currentTime+start);
+  g.gain.linearRampToValueAtTime(vol, a.currentTime+start+.02);
+  g.gain.exponentialRampToValueAtTime(.0001, a.currentTime+start+dur);
+  o.connect(g).connect(a.destination);
+  o.start(a.currentTime+start); o.stop(a.currentTime+start+dur+.02);
+}
+const sndYes = () => [[523.25,0],[659.25,.09],[783.99,.18],[1046.5,.28]]
+  .forEach(([f,d]) => tone(f,d,.35,"triangle",.2));
+const sndNo  = () => { tone(200,0,.16,"sine",.16); tone(150,.11,.22,"sine",.14); };
+const sndWin = () => [[523.25,0],[659.25,.12],[783.99,.24],[1046.5,.36],[1318.5,.5]]
+  .forEach(([f,d]) => tone(f,d,.5,"triangle",.2));
+
+/* Speak the dinosaur's name — a 4-year-old can't read the labels yet.
+   Voice choice is Rioplatense-first, then any Latin American Spanish, and only
+   falls back to Castilian if the device has nothing else. macOS/iOS ship an
+   Argentine voice ("Diego", es-AR) which this picks up automatically. */
+const VOICE_PREF = {
+  es: ["es-ar","es-uy","es-py","es-419","es-cl","es-mx","es-co","es-pe","es-us","es-la","es"],
+  en: ["en-gb","en-us","en"]
+};
+let voices = [], voiceFor = {};
+function loadVoices(){
+  try{ voices = speechSynthesis.getVoices() || []; }catch(e){ voices = []; }
+  voiceFor = {};
+}
+const savedVoice = l => { try{ return localStorage.getItem("dinoVoice:" + l); }catch(e){ return null; } };
+function chooseVoice(l){
+  if(voiceFor[l] !== undefined) return voiceFor[l];
+  if(!voices.length) loadVoices();
+  const norm = v => (v.lang || "").toLowerCase().replace(/_/g,"-");
+  const pinned = savedVoice(l);                 // whatever the tester last selected wins
+  if(pinned){
+    const v = voices.find(v => v.name === pinned);
+    if(v) return (voiceFor[l] = v);
+  }
+  for(const p of VOICE_PREF[l]){
+    const v = voices.find(v => norm(v) === p) || voices.find(v => norm(v).startsWith(p + "-"));
+    if(v) return (voiceFor[l] = v);
+  }
+  return (voiceFor[l] = voices.find(v => norm(v).startsWith(l)) || null);
+}
+if("speechSynthesis" in window){
+  loadVoices();
+  // Voices arrive asynchronously in Chrome — refill the picker when they land.
+  speechSynthesis.onvoiceschanged = () => { loadVoices(); fillVoiceSel(); };
+}
+
+/* Voice tester on the start screen: audition the voices this device offers and
+   pin one. Spanish voices are listed first for ES, English first for EN. */
+function fillVoiceSel(){
+  const sel = document.getElementById("voicesel");
+  if(!sel) return;
+  if(!voices.length) loadVoices();
+  const norm = v => (v.lang || "").toLowerCase().replace(/_/g,"-");
+  const mine  = voices.filter(v => norm(v).startsWith(lang));
+  const other = voices.filter(v => !norm(v).startsWith(lang));
+  const list  = mine.concat(other);
+  if(!list.length){ sel.innerHTML = `<option value="">${t().novoice}</option>`; return; }
+  const auto = chooseVoice(lang);
+  sel.innerHTML = list.map(v =>
+    `<option value="${v.name.replace(/"/g,"&quot;")}">${v.lang} — ${v.name}</option>`).join("");
+  if(auto) sel.value = auto.name;
+}
+/* Handy in devtools: dinoVoices() lists what this device offers,
+   dinoVoice("es") shows which one the game picked. */
+window.dinoVoices = () => (loadVoices(), voices.map(v => `${v.lang}  ${v.name}`));
+window.dinoVoice  = (l="es") => { const v = chooseVoice(l); return v ? `${v.lang}  ${v.name}` : "none"; };
+
+function say(text){
+  if(!("speechSynthesis" in window)) return;
+  try{
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    const v = chooseVoice(lang);
+    if(v){ u.voice = v; u.lang = v.lang; }
+    else  { u.lang = lang === "es" ? "es-419" : "en-US"; }  // nudge engines toward LatAm
+    u.rate = .85; u.pitch = 1.15;
+    speechSynthesis.speak(u);
+  }catch(e){/* speech is a bonus, never a blocker */}
+}
+
+/* ============================================================
+   Confetti
+   ============================================================ */
+const cv = document.getElementById("confetti"), cx = cv.getContext("2d");
+let bits = [], raf = null;
+function sizeCanvas(){ cv.width = innerWidth; cv.height = innerHeight; }
+addEventListener("resize", sizeCanvas); sizeCanvas();
+function confetti(n=90){
+  const cols = ["#f7c948","#4c9a5e","#e0576b","#7ec8e3","#c9784a","#fffaf0"];
+  for(let i=0;i<n;i++) bits.push({
+    x:innerWidth/2 + (Math.random()-.5)*260, y:innerHeight*.36,
+    vx:(Math.random()-.5)*11, vy:-(6+Math.random()*11),
+    s:6+Math.random()*9, c:cols[i%cols.length],
+    rot:Math.random()*6.28, vr:(Math.random()-.5)*.34, life:0
+  });
+  if(!raf) raf = requestAnimationFrame(tick);
+}
+function tick(){
+  cx.clearRect(0,0,cv.width,cv.height);
+  bits = bits.filter(b => b.life < 150 && b.y < innerHeight+60);
+  bits.forEach(b => {
+    b.life++; b.vy += .36; b.x += b.vx; b.y += b.vy; b.rot += b.vr; b.vx *= .995;
+    cx.save(); cx.translate(b.x,b.y); cx.rotate(b.rot); cx.fillStyle = b.c;
+    cx.fillRect(-b.s/2,-b.s/2,b.s,b.s*.62); cx.restore();
+  });
+  if(bits.length) raf = requestAnimationFrame(tick);
+  else { raf = null; cx.clearRect(0,0,cv.width,cv.height); }
+}
+
+/* ============================================================
+   Game state
+   ============================================================ */
+const $ = id => document.getElementById(id);
+let totalRounds = 8, roundNo = 0, score = 0, deck = [], current = null;
+let answered = false, missedThisRound = false;
+const history = [];
+
+const shuffle = a => { a = a.slice();
+  for(let i=a.length-1;i>0;i--){ const j = (Math.random()*(i+1))|0; [a[i],a[j]] = [a[j],a[i]]; }
+  return a; };
+const pick = a => a[(Math.random()*a.length)|0];
+const nameOf = d => (d.name && d.name[lang]) || d.name?.en || d.slug;
+
+function applyLang(){
+  document.documentElement.lang = lang;
+  document.querySelectorAll("[data-t]").forEach(el => {
+    const v = t()[el.dataset.t]; if(typeof v === "string") el.textContent = v;
+  });
+  $("lang-en").setAttribute("aria-pressed", lang==="en");
+  $("lang-es").setAttribute("aria-pressed", lang==="es");
+  fillVoiceSel();
+  document.title = t().title + " — " + (lang==="es" ? "¿De quién es la huella?" : "Whose Footprint?");
+}
+
+/* Round options: the two decoys must have a DIFFERENT track type from the
+   answer, so the three footprints are never confusable for a small child. */
+function buildRound(answer){
+  const groups = {};
+  CORPUS.filter(d => d.trackType !== answer.trackType)
+    .forEach(d => (groups[d.trackType] ||= []).push(d));
+  const types = shuffle(Object.keys(groups)).slice(0, 2);
+  return shuffle([answer, ...types.map(type => pick(groups[type]))]);
+}
+
+function startGame(){
+  roundNo = 0; score = 0; history.length = 0;
+  // Draw without replacement; reshuffle if more rounds than dinosaurs.
+  deck = [];
+  while(deck.length < totalRounds){ deck = deck.concat(shuffle(CORPUS)); }
+  deck = deck.slice(0, totalRounds);
+  $("dots").innerHTML = deck.map(() => '<div class="dot"></div>').join("");
+  show("play-screen"); nextRound();
+}
+
+function nextRound(){
+  if(roundNo >= totalRounds) return finish();
+  current = deck[roundNo]; answered = false; missedThisRound = false;
+  $("print").src = current.footprint;
+  $("print").alt = "Fossil footprint of a " + nameOf(current);
+  $("feedback").innerHTML = "";
+  $("score").textContent = "⭐ " + score;
+  [...$("dots").children].forEach((d,i) => {
+    d.className = "dot" + (i < roundNo ? (history[i] ? " done" : " miss") : i === roundNo ? " now" : "");
+  });
+
+  const opts = buildRound(current);
+  $("cards").innerHTML = "";
+  opts.forEach(d => {
+    const b = document.createElement("button");
+    b.className = "card"; b.type = "button";
+    b.innerHTML = `<span class="badge"></span>
+      <img src="${d.image}" alt="${nameOf(d)}">
+      <span class="name">${nameOf(d)}</span>`;
+    b.onclick = () => choose(b, d);
+    $("cards").appendChild(b);
+  });
+}
+
+function choose(btn, d){
+  if(answered || btn.dataset.hadMiss) return;
+  const right = d.slug === current.slug;
+  btn.querySelector(".badge").textContent = right ? "✅" : "❌";
+
+  if(right){
+    answered = true;
+    btn.classList.add("right","locked");
+    [...$("cards").children].forEach(c => { if(c !== btn) c.classList.add("faded","locked"); });
+    // A point only for a first-try hit, but the round always ends in success.
+    const firstTry = !missedThisRound;
+    if(firstTry) score++;
+    history[roundNo] = firstTry;
+    sndYes(); confetti(firstTry ? 110 : 60);
+    const fact = current.kidDescription?.[lang] || current.kidDescription?.en || "";
+    $("feedback").innerHTML =
+      `<span class="good">${pick(t().yes)} ${t().itwas(nameOf(current))}
+        <span class="fact">${fact}</span></span>`;
+    say(nameOf(current));
+    $("score").textContent = "⭐ " + score;
+    [...$("dots").children][roundNo].className = "dot " + (firstTry ? "done" : "miss");
+    setTimeout(() => { roundNo++; nextRound(); }, 4600);
+  } else {
+    // Wrong guesses never end the round — she keeps trying until she finds it.
+    btn.classList.add("wrong"); btn.dataset.hadMiss = "1"; missedThisRound = true;
+    sndNo();
+    $("feedback").innerHTML = `<span class="again">${pick(t().no)}</span>`;
+    setTimeout(() => { btn.classList.remove("wrong"); btn.classList.add("faded"); }, 460);
+  }
+}
+
+function finish(){
+  show("end");
+  const pct = score / totalRounds;
+  $("medal").textContent = pct >= .8 ? "🏆" : pct >= .5 ? "🥇" : "🦕";
+  $("tally").textContent = t().finalTitle(score, totalRounds);
+  const stars = Math.max(1, Math.round(pct * 5));
+  $("stars").textContent = "⭐".repeat(stars) + "☆".repeat(5 - stars);
+  $("endmsg").textContent = pct >= .8 ? t().praise.hi : pct >= .5 ? t().praise.mid : t().praise.low;
+  $("met").innerHTML = deck.map((d,i) =>
+    `<figure class="${history[i] ? "" : "miss"}">
+       <img src="${d.image}" alt=""><figcaption>${nameOf(d)}</figcaption></figure>`).join("");
+  sndWin(); confetti(160);
+}
+
+function show(id){ document.querySelectorAll(".screen").forEach(s => s.classList.toggle("on", s.id === id)); }
+
+/* ============================================================
+   Wiring
+   ============================================================ */
+[4,6,8,10,12].forEach(n => {
+  const b = document.createElement("button");
+  b.className = "pill"; b.type = "button"; b.textContent = n;
+  b.setAttribute("aria-pressed", n === 8);
+  b.onclick = () => { totalRounds = n;
+    [...$("rounds").children].forEach(p => p.setAttribute("aria-pressed", p === b)); };
+  $("rounds").appendChild(b);
+});
+$("voicesel").onchange = e => {
+  try{ localStorage.setItem("dinoVoice:" + lang, e.target.value); }catch(err){}
+  voiceFor = {};
+  say(t().sample);            // audition immediately on pick
+};
+$("voicetest").onclick = () => { voiceFor = {}; say(t().sample); };
+$("play").onclick = () => { audio().resume?.(); startGame(); };
+$("again").onclick = () => show("start");
+$("lang-en").onclick = () => { lang = "en"; applyLang(); };
+$("lang-es").onclick = () => { lang = "es"; applyLang(); };
+applyLang();
+</script>
+</body>
+</html>

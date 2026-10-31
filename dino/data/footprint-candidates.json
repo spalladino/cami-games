@@ -1,0 +1,124 @@
+[
+  {
+    "dinosaur": "tyrannosaurus-rex",
+    "ichnogenus": "Tyrannosauripus pillmorei",
+    "track_type": "theropod-3toe-sharp",
+    "candidates": [
+      {"url": "https://upload.wikimedia.org/wikipedia/commons/6/63/Tyrannosauripus_pillmorei_theropod_dinosaur_footprint_%28Raton_Formation%2C_Upper_Cretaceous%3B_Philmont_Ranch_tracksite%2C_North_Ponil_Canyon%2C_northern_New_Mexico%2C_USA%29_%2815352953647%29.jpg",
+       "commons_page": "https://commons.wikimedia.org/wiki/File:Tyrannosauripus_pillmorei_theropod_dinosaur_footprint_(Raton_Formation,_Upper_Cretaceous;_Philmont_Ranch_tracksite,_North_Ponil_Canyon,_northern_New_Mexico,_USA)_(15352953647).jpg",
+       "license": "CC BY 2.0", "author": "James St. John", "kind": "cast"},
+      {"url": "https://upload.wikimedia.org/wikipedia/commons/a/af/Philmont_Scout_Ranch_Tyrannosaurus_footprint.jpg",
+       "commons_page": "https://commons.wikimedia.org/wiki/File:Philmont_Scout_Ranch_Tyrannosaurus_footprint.jpg",
+       "license": "CC BY-SA 4.0", "author": "Rufous-crowned Sparrow", "kind": "photo"}
+    ]
+  },
+  {
+    "dinosaur": "apatosaurus",
+    "ichnogenus": "Brontopodus",
+    "track_type": "sauropod-round",
+    "candidates": [
+      {"url": "https://upload.wikimedia.org/wikipedia/commons/c/ca/Apatosaurus_sauropod_dinosaur_footprint_%28Upper_Jurassic%3B_western_USA%29_%2815218981769%29.jpg",
+       "commons_page": "https://commons.wikimedia.org/wiki/File:Apatosaurus_sauropod_dinosaur_footprint_(Upper_Jurassic;_western_USA)_(15218981769).jpg",
+       "license": "CC BY 2.0", "author": "James St. John", "kind": "cast"},
+      {"url": "https://upload.wikimedia.org/wikipedia/commons/e/e8/Sauropod_Footprint.jpg",
+       "commons_page": "https://commons.wikimedia.org/wiki/File:Sauropod_Footprint.jpg",
+       "license": "CC BY 2.0", "author": "Rodney (Flickr)", "kind": "photo"}
+    ]
+  },
+  {
+    "dinosaur": "velociraptor",
+    "ichnogenus": "Dromaeosauripus",
+    "track_type": "dromaeosaur-2toe",
+    "candidates": [
+      {"url": "https://upload.wikimedia.org/wikipedia/commons/3/3d/Diagram_of_Dromaeosauriformipes_%28left%29_and_Dromaeosauripus_%28right%29.webp",
+       "commons_page": "https://commons.wikimedia.org/wiki/File:Diagram_of_Dromaeosauriformipes_(left)_and_Dromaeosauripus_(right).webp",
+       "license": "CC BY 4.0", "author": "Kim et al. (2018)", "kind": "diagram"}
+    ]
+  },
+  {
+    "dinosaur": "iguanodon",
+    "ichnogenus": "Iguanodontipus",
+    "track_type": "ornithopod-3toe-blunt",
+    "candidates": [
+      {"url": "https://upload.wikimedia.org/wikipedia/commons/2/27/Iguanodon_footprint_01.jpg",
+       "commons_page": "https://commons.wikimedia.org/wiki/File:Iguanodon_footprint_01.jpg",
+       "license": "CC BY-SA 4.0", "author": "Kritzolina", "kind": "cast"},
+      {"url": "https://upload.wikimedia.org/wikipedia/commons/9/9d/Iguanodon_Footprint.JPG",
+       "commons_page": "https://commons.wikimedia.org/wiki/File:Iguanodon_Footprint.JPG",
+       "license": "CC BY-SA 3.0", "author": "Jurassicjay", "kind": "photo"}
+    ]
+  },
+  {
+    "dinosaur": "stegosaurus",
+    "ichnogenus": "Deltapodus",
+    "track_type": "thyreophoran-blunt",
+    "candidates": [
+      {"url": "https://upload.wikimedia.org/wikipedia/commons/3/35/Stegosaurus_dinosaur_track_%28Morrison_Formation%2C_Upper_Jurassic%3B_Colorado%2C_USA%29_%2815354795450%29.jpg",
+       "commons_page": "https://commons.wikimedia.org/wiki/File:Stegosaurus_dinosaur_track_(Morrison_Formation,_Upper_Jurassic;_Colorado,_USA)_(15354795450).jpg",
+       "license": "CC BY 2.0", "author": "James St. John", "kind": "photo"},
+      {"url": "https://upload.wikimedia.org/wikipedia/commons/3/3f/Deltapodus_ibericus_-_El_Castellar%2C_Teruel%2C_Spain.JPG",
+       "commons_page": "https://commons.wikimedia.org/wiki/File:Deltapodus_ibericus_-_El_Castellar,_Teruel,_Spain.JPG",
+       "license": "CC BY-SA 4.0", "author": "PePeEfe", "kind": "photo"}
+    ]
+  },
+  {
+    "dinosaur": "ankylosaurus",
+    "ichnogenus": "Tetrapodosaurus borealis",
+    "track_type": "ankylosaur-4toe",
+    "candidates": [
+      {"url": "https://upload.wikimedia.org/wikipedia/commons/4/40/Tetrapodosaurus_borealis.png",
+       "commons_page": "https://commons.wikimedia.org/wiki/File:Tetrapodosaurus_borealis.png",
+       "license": "CC BY 4.0", "author": "Arbour et al. (2020)", "kind": "photo"}
+    ]
+  },
+  {
+    "dinosaur": "triceratops",
+    "ichnogenus": "Ceratopsipes goldenensis",
+    "track_type": "ceratopsian-round",
+    "candidates": [
+      {"url": "https://upload.wikimedia.org/wikipedia/commons/6/62/Triceratops_dinosaur_footprint_on_underside_of_vertically_tilted_sandstone_bed_%28Laramie_Formation%2C_upper_Upper_Cretaceous%3B_Parfet_Prehistoric_Preserve%2C_Golden%2C_Colorado%2C_USA%29_%2815894268491%29.jpg",
+       "commons_page": "https://commons.wikimedia.org/wiki/File:Triceratops_dinosaur_footprint_on_underside_of_vertically_tilted_sandstone_bed_(Laramie_Formation,_upper_Upper_Cretaceous;_Parfet_Prehistoric_Preserve,_Golden,_Colorado,_USA)_(15894268491).jpg",
+       "license": "CC BY 2.0", "author": "James St. John", "kind": "photo"}
+    ]
+  },
+  {
+    "dinosaur": "edmontosaurus",
+    "ichnogenus": "Hadrosauropodus",
+    "track_type": "ornithopod-3toe-blunt",
+    "candidates": [
+      {"url": "https://upload.wikimedia.org/wikipedia/commons/5/58/Hadrosaur_dinosaur_footprint_%28Laramie_Formation%2C_Upper_Cretaceous%3B_Parfet_Prehistoric_Preserve%2C_Golden%2C_Colorado%2C_USA%29_1.jpg",
+       "commons_page": "https://commons.wikimedia.org/wiki/File:Hadrosaur_dinosaur_footprint_(Laramie_Formation,_Upper_Cretaceous;_Parfet_Prehistoric_Preserve,_Golden,_Colorado,_USA)_1.jpg",
+       "license": "CC BY 2.0", "author": "James St. John", "kind": "photo"},
+      {"url": "https://upload.wikimedia.org/wikipedia/commons/8/8f/Hadrosaur_dinosaur_footprint_%28Laramie_Formation%2C_Upper_Cretaceous%3B_Parfet_Prehistoric_Preserve%2C_Golden%2C_Colorado%2C_USA%29_2.jpg",
+       "commons_page": "https://commons.wikimedia.org/wiki/File:Hadrosaur_dinosaur_footprint_(Laramie_Formation,_Upper_Cretaceous;_Parfet_Prehistoric_Preserve,_Golden,_Colorado,_USA)_2.jpg",
+       "license": "CC BY 2.0", "author": "James St. John", "kind": "photo"}
+    ]
+  },
+  {
+    "dinosaur": "dilophosaurus",
+    "ichnogenus": "Eubrontes giganteus",
+    "track_type": "theropod-3toe-medium",
+    "_note": "Eubrontes is standardly attributed to a Dilophosaurus-grade large theropod, NOT to Allosaurus — labelled accordingly.",
+    "candidates": [
+      {"url": "https://upload.wikimedia.org/wikipedia/commons/5/5b/Cast_of_Eubrontes_Gigantis_track_by_Paul_Olsen.jpg",
+       "commons_page": "https://commons.wikimedia.org/wiki/File:Cast_of_Eubrontes_Gigantis_track_by_Paul_Olsen.jpg",
+       "license": "CC BY 3.0", "author": "Z22 (cast by Paul Olsen)", "kind": "cast"},
+      {"url": "https://upload.wikimedia.org/wikipedia/commons/6/60/Eubrontes_giganteus_%28dinosaur_footprint%29_%28Longmeadown_Formation%2C_Upper_Triassic_to_Lower_Jurassic%3B_Mt._Tom_Dinosaur_Tracksite%2C_Connecticut_River_Valley%2C_Massachusetts%2C_USA%29.jpg",
+       "commons_page": "https://commons.wikimedia.org/wiki/File:Eubrontes_giganteus_(dinosaur_footprint)_(Longmeadown_Formation,_Upper_Triassic_to_Lower_Jurassic;_Mt._Tom_Dinosaur_Tracksite,_Connecticut_River_Valley,_Massachusetts,_USA).jpg",
+       "license": "CC BY 2.0", "author": "James St. John", "kind": "photo"}
+    ]
+  },
+  {
+    "dinosaur": "coelophysis",
+    "ichnogenus": "Grallator gracilis",
+    "track_type": "theropod-3toe-small",
+    "candidates": [
+      {"url": "https://upload.wikimedia.org/wikipedia/commons/a/a5/Grallator_gracilis_%28dinosaur_footprint%29_%28Portland_Arkose%2C_Lower_Jurassic%3B_Rocky_Hill%2C_Connecticut%2C_USA%29_%2842215374551%29.jpg",
+       "commons_page": "https://commons.wikimedia.org/wiki/File:Grallator_gracilis_(dinosaur_footprint)_(Portland_Arkose,_Lower_Jurassic;_Rocky_Hill,_Connecticut,_USA)_(42215374551).jpg",
+       "license": "CC BY 2.0", "author": "James St. John", "kind": "photo"},
+      {"url": "https://upload.wikimedia.org/wikipedia/commons/9/92/Fossil_traces_-_Grallator_toscanus.JPG",
+       "commons_page": "https://commons.wikimedia.org/wiki/File:Fossil_traces_-_Grallator_toscanus.JPG",
+       "license": "CC BY-SA 3.0", "author": "Hectonichus", "kind": "photo"}
+    ]
+  }
+]

@@ -1,0 +1,194 @@
+[
+  {
+    "dinosaur": "diplodocus",
+    "slug": "diplodocus",
+    "file": "assets/footprints/diplodocus.png",
+    "size": [
+      900,
+      900
+    ],
+    "source": {
+      "author": "Butterfly Creek (Dinosaur Footprints Matching Activity)",
+      "license": "worksheet artwork, used for personal/offline play",
+      "source_page": "https://www.butterflycreek.co.nz/wp-content/uploads/2022/08/Dinosaur-Footprints-Activity.pdf",
+      "kind": "silhouette drawing"
+    }
+  },
+  {
+    "dinosaur": "triceratops",
+    "slug": "triceratops",
+    "file": "assets/footprints/triceratops.png",
+    "size": [
+      900,
+      900
+    ],
+    "source": {
+      "author": "Butterfly Creek (Dinosaur Footprints Matching Activity)",
+      "license": "worksheet artwork, used for personal/offline play",
+      "source_page": "https://www.butterflycreek.co.nz/wp-content/uploads/2022/08/Dinosaur-Footprints-Activity.pdf",
+      "kind": "silhouette drawing"
+    }
+  },
+  {
+    "dinosaur": "stegosaurus",
+    "slug": "stegosaurus",
+    "file": "assets/footprints/stegosaurus.png",
+    "size": [
+      900,
+      900
+    ],
+    "source": {
+      "author": "Butterfly Creek (Dinosaur Footprints Matching Activity)",
+      "license": "worksheet artwork, used for personal/offline play",
+      "source_page": "https://www.butterflycreek.co.nz/wp-content/uploads/2022/08/Dinosaur-Footprints-Activity.pdf",
+      "kind": "silhouette drawing"
+    }
+  },
+  {
+    "dinosaur": "tyrannosaurus-rex",
+    "slug": "tyrannosaurus-rex",
+    "file": "assets/footprints/tyrannosaurus-rex.png",
+    "size": [
+      900,
+      900
+    ],
+    "source": {
+      "author": "Butterfly Creek (Dinosaur Footprints Matching Activity)",
+      "license": "worksheet artwork, used for personal/offline play",
+      "source_page": "https://www.butterflycreek.co.nz/wp-content/uploads/2022/08/Dinosaur-Footprints-Activity.pdf",
+      "kind": "silhouette drawing"
+    }
+  },
+  {
+    "dinosaur": "velociraptor",
+    "slug": "velociraptor",
+    "file": "assets/footprints/velociraptor.png",
+    "size": [
+      900,
+      900
+    ],
+    "source": {
+      "author": "Butterfly Creek (Dinosaur Footprints Matching Activity)",
+      "license": "worksheet artwork, used for personal/offline play",
+      "source_page": "https://www.butterflycreek.co.nz/wp-content/uploads/2022/08/Dinosaur-Footprints-Activity.pdf",
+      "kind": "silhouette drawing"
+    }
+  },
+  {
+    "dinosaur": "spinosaurus",
+    "slug": "spinosaurus",
+    "file": "assets/footprints/spinosaurus.png",
+    "size": [
+      900,
+      900
+    ],
+    "source": {
+      "author": "Butterfly Creek (Dinosaur Footprints Matching Activity)",
+      "license": "worksheet artwork, used for personal/offline play",
+      "source_page": "https://www.butterflycreek.co.nz/wp-content/uploads/2022/08/Dinosaur-Footprints-Activity.pdf",
+      "kind": "silhouette drawing"
+    }
+  },
+  {
+    "dinosaur": "allosaurus",
+    "slug": "allosaurus",
+    "file": "assets/footprints/allosaurus.png",
+    "size": [
+      900,
+      900
+    ],
+    "source": {
+      "author": "Dino Detective project (Codex)",
+      "license": "CC0 1.0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "source_page": "https://www.nps.gov/dena/learn/nature/making-dino-prints.htm",
+      "kind": "original schematic drawing; group-level shape, not a species-attributed fossil",
+      "drawing": "assets/footprints/drawings/allosaurus.svg"
+    }
+  },
+  {
+    "dinosaur": "apatosaurus",
+    "slug": "apatosaurus",
+    "file": "assets/footprints/apatosaurus.png",
+    "size": [
+      900,
+      900
+    ],
+    "source": {
+      "author": "Dino Detective project (Codex)",
+      "license": "CC0 1.0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "source_page": "https://www.fs.usda.gov/sites/default/files/fs_media/fs_document/Dinosaur%20Lake-Final508.pdf",
+      "kind": "original schematic drawing; group-level shape, not a species-attributed fossil",
+      "drawing": "assets/footprints/drawings/apatosaurus.svg"
+    }
+  },
+  {
+    "dinosaur": "brachiosaurus",
+    "slug": "brachiosaurus",
+    "file": "assets/footprints/brachiosaurus.png",
+    "size": [
+      900,
+      900
+    ],
+    "source": {
+      "author": "Dino Detective project (Codex)",
+      "license": "CC0 1.0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "source_page": "https://www.fs.usda.gov/sites/default/files/fs_media/fs_document/Dinosaur%20Lake-Final508.pdf",
+      "kind": "original schematic drawing; group-level shape, not a species-attributed fossil",
+      "drawing": "assets/footprints/drawings/brachiosaurus.svg"
+    }
+  },
+  {
+    "dinosaur": "deinonychus",
+    "slug": "deinonychus",
+    "file": "assets/footprints/deinonychus.png",
+    "size": [
+      900,
+      900
+    ],
+    "source": {
+      "author": "Dino Detective project (Codex)",
+      "license": "CC0 1.0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "source_page": "https://doi.org/10.1016/j.palaeo.2008.02.003",
+      "kind": "original schematic drawing; group-level shape, not a species-attributed fossil",
+      "drawing": "assets/footprints/drawings/deinonychus.svg"
+    }
+  },
+  {
+    "dinosaur": "iguanodon",
+    "slug": "iguanodon",
+    "file": "assets/footprints/iguanodon.png",
+    "size": [
+      900,
+      900
+    ],
+    "source": {
+      "author": "Dino Detective project (Codex)",
+      "license": "CC0 1.0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "source_page": "https://doi.org/10.1371/journal.pone.0115477",
+      "kind": "original schematic drawing; group-level shape, not a species-attributed fossil",
+      "drawing": "assets/footprints/drawings/iguanodon.svg"
+    }
+  },
+  {
+    "dinosaur": "parasaurolophus",
+    "slug": "parasaurolophus",
+    "file": "assets/footprints/parasaurolophus.png",
+    "size": [
+      900,
+      900
+    ],
+    "source": {
+      "author": "Dino Detective project (Codex)",
+      "license": "CC0 1.0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "source_page": "https://doi.org/10.1371/journal.pone.0115477",
+      "kind": "original schematic drawing; group-level shape, not a species-attributed fossil",
+      "drawing": "assets/footprints/drawings/parasaurolophus.svg"
+    }
+  }
+]
