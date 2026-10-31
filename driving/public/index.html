@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+  <title>Cami Driving</title>
+  <!-- Empty icon so the browser does not request /favicon.ico. -->
+  <link rel="icon" href="data:,">
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #7ED957;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    canvas {
+      display: block;
+      position: fixed;
+      left: 0;
+      top: 0;
+      width: 100vw;
+      height: 100vh;
+      touch-action: none;
+    }
+    /* game.js adds this class while the car is driving, so the mouse pointer disappears. */
+    body.playing, body.playing canvas { cursor: none; }
+  </style>
+</head>
+<body>
+  <canvas id="game"></canvas>
+  <script src="js/net.js"></script>
+  <script src="js/art.js"></script>
+  <script src="js/sounds.js"></script>
+  <script src="js/game.js"></script>
+</body>
+</html>

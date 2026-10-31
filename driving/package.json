@@ -1,0 +1,17 @@
+{
+  "name": "cami-driving",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A tiny driving game for a 4-year-old, steered by tilting a phone.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "qrcode": "^1.5.4",
+    "ws": "^8.18.0"
+  }
+}

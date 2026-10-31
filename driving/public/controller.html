@@ -1,0 +1,577 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#8ecae6">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="format-detection" content="telephone=no">
+<title>Steering wheel</title>
+<style>
+  :root {
+    --sky1: #8ecae6;
+    --sky2: #d7f0ff;
+    --go: #2dc653;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    margin: 0; padding: 0; width: 100%; height: 100%;
+    overflow: hidden; position: fixed; inset: 0;
+    overscroll-behavior: none;
+    touch-action: none;
+    -webkit-user-select: none; user-select: none;
+    -webkit-touch-callout: none;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: radial-gradient(circle at 50% 40%, var(--sky2), var(--sky1));
+    color: #1d3557;
+  }
+  img, svg { -webkit-user-drag: none; pointer-events: none; }
+
+  #stage { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+  #wheel {
+    width: min(94vw, 94vh); height: min(94vw, 94vh);
+    transform: rotate(0deg);
+    filter: drop-shadow(0 1.2vmin 1.2vmin rgba(0,0,0,0.25));
+    will-change: transform;
+  }
+  .glow { position: absolute; top: 0; bottom: 0; width: 22vw; opacity: 0; pointer-events: none; }
+  .glow.left  { left: 0;  background: linear-gradient(to right, rgba(45,198,83,0.75), rgba(45,198,83,0)); }
+  .glow.right { right: 0; background: linear-gradient(to left,  rgba(45,198,83,0.75), rgba(45,198,83,0)); }
+
+  /* Tiny dad-only status dot + settings (long-press) */
+  #dot {
+    position: absolute; top: max(8px, env(safe-area-inset-top)); left: max(8px, env(safe-area-inset-left));
+    width: 10px; height: 10px; border-radius: 50%; background: #e63946;
+    box-shadow: 0 0 0 2px rgba(255,255,255,0.7); pointer-events: none;
+  }
+  #dot.warn { background: #f4a261; }
+  #dot.ok { background: var(--go); }
+  #gear {
+    position: absolute; top: max(2px, env(safe-area-inset-top)); right: max(2px, env(safe-area-inset-right));
+    width: 44px; height: 44px; border: 0; background: transparent; padding: 0;
+    font-size: 20px; line-height: 44px; color: rgba(29,53,87,0.35);
+  }
+
+  .overlay {
+    position: absolute; inset: 0; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 2.5vmin;
+    background: rgba(215,240,255,0.92); padding: 16px; text-align: center;
+  }
+  .overlay[hidden], #panel[hidden] { display: none; }
+  #startBtn {
+    width: min(48vw, 48vh); height: min(48vw, 48vh); border-radius: 50%;
+    border: 1.6vmin solid #fff; background: var(--go); color: #fff;
+    box-shadow: 0 1.5vmin 3vmin rgba(0,0,0,0.25);
+    display: flex; align-items: center; justify-content: center; padding: 0;
+  }
+  #startBtn:active { transform: scale(0.96); }
+  #startBtn svg { width: 50%; height: 50%; }
+  .small { font-size: 13px; line-height: 1.35; color: #335; max-width: 34em; }
+  .small b { color: #1d3557; }
+  .msg { font-size: 14px; line-height: 1.4; color: #7a1020; max-width: 36em; }
+  .msg a { color: #0a58ca; word-break: break-all; }
+
+  #help { background: rgba(255,245,235,0.97); }
+  #help h2 { margin: 0; font-size: 18px; }
+  button.btn {
+    font: inherit; font-size: 14px; padding: 10px 14px; border-radius: 10px;
+    border: 1px solid #9ab; background: #fff; color: #1d3557;
+  }
+  button.btn.primary { background: #1d3557; color: #fff; border-color: #1d3557; }
+
+  #panel {
+    position: absolute; top: 48px; right: 8px; max-width: min(360px, calc(100vw - 16px));
+    max-height: calc(100vh - 56px); overflow: auto; touch-action: pan-y;
+    background: rgba(255,255,255,0.96); border-radius: 12px; padding: 12px;
+    box-shadow: 0 6px 24px rgba(0,0,0,0.25); font-size: 13px; line-height: 1.45;
+  }
+  #panel .row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  #panel code { font-size: 12px; }
+</style>
+</head>
+<body>
+
+<div id="stage">
+  <div id="glowL" class="glow left"></div>
+  <div id="glowR" class="glow right"></div>
+  <svg id="wheel" viewBox="-100 -100 200 200" aria-hidden="true">
+    <defs>
+      <radialGradient id="hubG" cx="40%" cy="35%" r="70%">
+        <stop offset="0" stop-color="#fff6c2"/>
+        <stop offset="1" stop-color="#ffc300"/>
+      </radialGradient>
+    </defs>
+    <!-- spokes -->
+    <g stroke="#4361ee" stroke-width="17" stroke-linecap="round">
+      <line x1="0" y1="0" x2="-74" y2="10"/>
+      <line x1="0" y1="0" x2="74" y2="10"/>
+      <line x1="0" y1="0" x2="0" y2="75"/>
+    </g>
+    <!-- rainbow rim: 6 arcs of a circle r=80 (circumference 502.65) -->
+    <g fill="none" stroke-width="24" transform="rotate(-90)">
+      <circle r="80" stroke="#ff595e" stroke-dasharray="84.3 418.4" stroke-dashoffset="0"/>
+      <circle r="80" stroke="#ff924c" stroke-dasharray="84.3 418.4" stroke-dashoffset="-83.78"/>
+      <circle r="80" stroke="#ffca3a" stroke-dasharray="84.3 418.4" stroke-dashoffset="-167.55"/>
+      <circle r="80" stroke="#8ac926" stroke-dasharray="84.3 418.4" stroke-dashoffset="-251.33"/>
+      <circle r="80" stroke="#1982c4" stroke-dasharray="84.3 418.4" stroke-dashoffset="-335.1"/>
+      <circle r="80" stroke="#6a4c93" stroke-dasharray="84.3 418.4" stroke-dashoffset="-418.88"/>
+    </g>
+    <circle r="91.5" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="2.5"/>
+    <circle r="68.5" fill="none" stroke="rgba(255,255,255,0.6)" stroke-width="2"/>
+    <!-- top marker, so the "straight" position is obvious -->
+    <rect x="-8" y="-95" width="16" height="30" rx="6" fill="#ffffff" stroke="#1d3557" stroke-width="3"/>
+    <!-- hub with a smiley -->
+    <circle r="31" fill="url(#hubG)" stroke="#fb8500" stroke-width="4"/>
+    <circle cx="-10" cy="-7" r="4.2" fill="#3a0ca3"/>
+    <circle cx="10" cy="-7" r="4.2" fill="#3a0ca3"/>
+    <path d="M-14 5 Q0 20 14 5" stroke="#3a0ca3" stroke-width="4.2" fill="none" stroke-linecap="round"/>
+  </svg>
+</div>
+
+<div id="dot" title="connection"></div>
+<button id="gear" aria-label="settings (long-press)">&#9881;</button>
+
+<div id="panel" hidden>
+  <div><b>Dad settings</b></div>
+  <div id="pStatus"></div>
+  <div class="row">
+    <button class="btn" id="pRecenter">Set straight = current position</button>
+    <button class="btn" id="pLevel">Reset: straight = level</button>
+  </div>
+  <div class="row">
+    <button class="btn" id="pFull">Fullscreen</button>
+    <button class="btn" id="pReload">Reload</button>
+    <button class="btn primary" id="pClose">Close</button>
+  </div>
+</div>
+
+<div id="start" class="overlay">
+  <button id="startBtn" aria-label="Start">
+    <svg viewBox="0 0 10 10"><path d="M3 1.8 L8.4 5 L3 8.2 Z" fill="#fff" stroke="#fff" stroke-width="0.8" stroke-linejoin="round"/></svg>
+  </button>
+  <div class="small"><b>Dad:</b> tap the green button, then hand over the phone sideways, screen facing her, like a steering wheel.
+    Turning it clockwise steers right. Long-press &#9881; (top-right) for settings.</div>
+  <div id="startMsg" class="msg"></div>
+</div>
+
+<div id="help" class="overlay" hidden>
+  <h2>Steering sensor not working</h2>
+  <div id="helpMsg" class="msg"></div>
+  <div class="row" style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center">
+    <button class="btn primary" id="helpReload">Reload page</button>
+    <button class="btn" id="helpDismiss">Dismiss</button>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+// BEGIN STEER MATH (pure functions, unit-tested in Node)
+var SteerMath = (function () {
+  var R2D = 180 / Math.PI, D2R = Math.PI / 180, G = 9.81;
+
+  function clamp(v, lo, hi) { return v < lo ? lo : v > hi ? hi : v; }
+  function wrapDeg(a) { return ((((a + 180) % 360) + 360) % 360) - 180; }
+  function normAngle(a) { return ((Math.round(a) % 360) + 360) % 360; }
+
+  // (gx, gy, gz): the "up" vector in DEVICE coordinates, as devicemotion's
+  // accelerationIncludingGravity reports it at rest (x = right edge, y = top edge of the phone
+  // in its natural portrait orientation, z = out of the screen). Upright portrait => (0, 9.81, 0).
+  // frameDeg: screen.orientation.angle (0/90/180/270) = how far the device is rotated
+  // counter-clockwise from natural portrait for that screen orientation.
+  // Returns angle (degrees, + = phone rotated clockwise as seen by the person looking at the
+  // screen) and planar (0..1: how much of gravity lies in the screen plane; ~0 when lying flat).
+  function wheelAngle(gx, gy, gz, frameDeg) {
+    var t = frameDeg * D2R, c = Math.cos(t), s = Math.sin(t);
+    var sx = gx * c - gy * s;   // up vector in screen coords (x right, y up)
+    var sy = gx * s + gy * c;
+    var mag = Math.sqrt(gx * gx + gy * gy + gz * gz);
+    var planar = mag > 1e-6 ? Math.sqrt(sx * sx + sy * sy) / mag : 0;
+    // Level: up points to screen-top (sx=0, sy>0). Phone turned clockwise by phi =>
+    // up appears rotated counter-clockwise on screen: sx = -sin(phi), sy = cos(phi).
+    return { angle: Math.atan2(-sx, sy) * R2D, planar: planar };
+  }
+
+  // Angle -> steering value: dead zone, linear to full lock, clamped to -1..1.
+  function angleToSteer(angleDeg, deadDeg, fullDeg) {
+    var a = Math.abs(angleDeg);
+    if (!(a > deadDeg)) return 0;
+    var v = Math.min(1, (a - deadDeg) / (fullDeg - deadDeg));
+    return angleDeg < 0 ? -v : v;
+  }
+
+  // When the phone lies (almost) flat, the in-screen gravity direction is meaningless:
+  // fade steering to 0 instead of jittering. Full confidence once >= ~20 deg from flat.
+  function planarConfidence(planar) { return clamp((planar - 0.15) / 0.2, 0, 1); }
+
+  // deviceorientation (beta, gamma in degrees) -> up vector in device coords (alpha not needed).
+  function gravityFromOrientation(betaDeg, gammaDeg) {
+    var b = betaDeg * D2R, g = gammaDeg * D2R;
+    return [-Math.cos(b) * Math.sin(g) * G, Math.sin(b) * G, Math.cos(b) * Math.cos(g) * G];
+  }
+
+  // Screen orientation angle (0/90/180/270) in which the phone is currently closest to level.
+  function snapFrame(gx, gy) {
+    var dev = Math.atan2(-gx, gy) * R2D; // wheel angle in frame 0
+    return normAngle(Math.round(-dev / 90) * 90);
+  }
+
+  // Full pipeline: up vector + frame + recenter offset -> { value -1..1, angle, planar }.
+  function steer(gx, gy, gz, frameDeg, offsetDeg, deadDeg, fullDeg) {
+    var r = wheelAngle(gx, gy, gz, frameDeg);
+    var a = wrapDeg(r.angle - (offsetDeg || 0));
+    var v = angleToSteer(a, deadDeg, fullDeg) * planarConfidence(r.planar);
+    return { value: v, angle: a, planar: r.planar };
+  }
+
+  return {
+    clamp: clamp, wrapDeg: wrapDeg, normAngle: normAngle, wheelAngle: wheelAngle,
+    angleToSteer: angleToSteer, planarConfidence: planarConfidence,
+    gravityFromOrientation: gravityFromOrientation, snapFrame: snapFrame, steer: steer
+  };
+})();
+// END STEER MATH
+
+(function () {
+  var CFG = {
+    deadDeg: 3,       // ignore tiny wobbles
+    fullDeg: 38,      // full lock at ~38 degrees of rotation
+    tauMs: 80,        // low-pass time constant for the gravity vector
+    sendMs: 33,       // ~30 Hz
+    visualDeg: 45,    // how far the on-screen wheel turns at full lock
+    noSensorMs: 2000, // show the dad help if no sensor data within this time
+    httpsPort: 8443
+  };
+
+  var $ = function (id) { return document.getElementById(id); };
+  var wheelEl = $('wheel'), glowL = $('glowL'), glowR = $('glowR'), dotEl = $('dot');
+  var now = function () { return performance.now(); };
+
+  // ---------------------------------------------------------------- state
+  var grav = null;            // low-passed up vector [x, y, z] in device coords
+  var lastSampleAt = 0, lastMotionAt = 0, lastFeedAt = 0, source = '';
+  var motionSign = 1, signVotes = 0, lastOrientVec = null, lastOrientAt = 0;
+  var started = false, startAt = 0, helpDismissed = false, permDenied = false;
+  var frameOverride = null, overSince = 0;
+  var offsetDeg = 0;
+  var cur = { value: 0, angle: 0, planar: 0 };
+  var atFullLock = false, lastBuzz = 0;
+  var wakeLock = null;
+
+  try { offsetDeg = Number(localStorage.getItem('cami.offsetDeg')) || 0; } catch (e) {}
+
+  function screenAngle() {
+    var a = 0;
+    if (screen.orientation && typeof screen.orientation.angle === 'number') a = screen.orientation.angle;
+    else if (typeof window.orientation === 'number') a = window.orientation;
+    return SteerMath.normAngle(a);
+  }
+  function isPortraitScreen() { var a = screenAngle(); return a === 0 || a === 180; }
+  function frame() { return frameOverride !== null ? frameOverride : screenAngle(); }
+
+  // ---------------------------------------------------------------- sensors
+  function feed(x, y, z, src) {
+    if (!isFinite(x) || !isFinite(y) || !isFinite(z)) return;
+    var t = now();
+    if (!grav) {
+      grav = [x, y, z];
+    } else {
+      var dt = Math.min(200, Math.max(1, t - lastFeedAt));
+      var k = 1 - Math.exp(-dt / CFG.tauMs);
+      grav[0] += k * (x - grav[0]);
+      grav[1] += k * (y - grav[1]);
+      grav[2] += k * (z - grav[2]);
+    }
+    lastFeedAt = t;
+    lastSampleAt = t;
+    source = src;
+  }
+
+  window.addEventListener('devicemotion', function (e) {
+    var a = e.accelerationIncludingGravity;
+    if (!a || a.x == null || a.y == null) return;
+    var x = a.x * motionSign, y = a.y * motionSign, z = (a.z || 0) * motionSign;
+    // Some browsers historically reported the opposite sign. If deviceorientation is also
+    // available, check they agree, and flip if they consistently point opposite ways.
+    if (lastOrientVec && now() - lastOrientAt < 200) {
+      var o = lastOrientVec, m = Math.sqrt(x * x + y * y + z * z);
+      if (m > 4 && m < 16) {
+        var dot = (x * o[0] + y * o[1] + z * o[2]) / (m * 9.81);
+        if (dot < -0.5) signVotes++; else if (dot > 0.5) signVotes = 0;
+        if (signVotes > 20) { motionSign = -motionSign; signVotes = 0; grav = null; return; }
+      }
+    }
+    lastMotionAt = now();
+    feed(x, y, z, 'motion');
+  });
+
+  window.addEventListener('deviceorientation', function (e) {
+    if (e.beta == null || e.gamma == null) return;
+    var v = SteerMath.gravityFromOrientation(e.beta, e.gamma);
+    lastOrientVec = v;
+    lastOrientAt = now();
+    // Prefer devicemotion (raw accelerometer, lowest latency). Use orientation only if
+    // motion events are not arriving.
+    if (now() - lastMotionAt < 500) return;
+    feed(v[0], v[1], v[2], 'orientation');
+  });
+
+  function sensorAlive() { return lastSampleAt > 0 && now() - lastSampleAt < 600; }
+
+  // ---------------------------------------------------------------- steering
+  function update() {
+    var t = now();
+    if (!grav || !sensorAlive()) {
+      cur = { value: 0, angle: 0, planar: 0 };
+    } else {
+      // Safety net for when the screen did NOT rotate to landscape (orientation lock failed and
+      // Android auto-rotate is off) but the phone is clearly held sideways: after 1.5 s at a
+      // big angle, steer relative to the sideways position instead. Only in portrait screens,
+      // since after Start we lock to landscape, and there we trust screen.orientation.
+      if (!isPortraitScreen()) {
+        frameOverride = null; overSince = 0;
+      } else if (frameOverride === null) {
+        var r0 = SteerMath.wheelAngle(grav[0], grav[1], grav[2], screenAngle());
+        if (r0.planar > 0.5 && Math.abs(r0.angle) > 65) {
+          if (!overSince) overSince = t;
+          else if (t - overSince > 1500) { frameOverride = SteerMath.snapFrame(grav[0], grav[1]); overSince = 0; }
+        } else overSince = 0;
+      } else {
+        // Overridden frame: return to the screen's frame once the phone is level in it again.
+        var r1 = SteerMath.wheelAngle(grav[0], grav[1], grav[2], screenAngle());
+        if (r1.planar > 0.5 && Math.abs(r1.angle) < 15) frameOverride = null;
+      }
+      cur = SteerMath.steer(grav[0], grav[1], grav[2], frame(), offsetDeg, CFG.deadDeg, CFG.fullDeg);
+    }
+
+    // Visuals: wheel turns with the steering; compensate if steering frame != screen frame
+    // so the wheel looks upright when the phone is held level.
+    var comp = SteerMath.wrapDeg(frame() - screenAngle());
+    wheelEl.style.transform = 'rotate(' + (comp + cur.value * CFG.visualDeg).toFixed(2) + 'deg)';
+    glowL.style.opacity = Math.max(0, -cur.value).toFixed(3);
+    glowR.style.opacity = Math.max(0, cur.value).toFixed(3);
+
+    // Gentle haptic tick when reaching full lock.
+    var full = Math.abs(cur.value) >= 0.999;
+    if (full && !atFullLock && started && t - lastBuzz > 400 && navigator.vibrate) {
+      try { navigator.vibrate(12); } catch (e) {}
+      lastBuzz = t;
+    }
+    atFullLock = full;
+
+    renderStatus();
+    requestAnimationFrame(update);
+  }
+
+  // ---------------------------------------------------------------- websocket
+  var sock = null, wsOpen = false, retryMs = 500, retryTimer = null, stalledSince = 0;
+
+  function wsUrl() {
+    return (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws?role=controller';
+  }
+  function scheduleWs() {
+    if (retryTimer) return;
+    retryTimer = setTimeout(function () { retryTimer = null; wsConnect(); }, retryMs);
+    retryMs = Math.min(retryMs * 2, 5000);
+  }
+  function dropSocket() {
+    var s = sock;
+    sock = null; wsOpen = false;
+    if (s) {
+      s.onopen = s.onclose = s.onerror = s.onmessage = null;
+      try { s.close(); } catch (e) {}
+    }
+  }
+  function wsConnect() {
+    if (sock && (sock.readyState === 0 || sock.readyState === 1)) return;
+    var s;
+    try { s = new WebSocket(wsUrl()); } catch (e) { scheduleWs(); return; }
+    sock = s;
+    s.onopen = function () { if (s !== sock) return; wsOpen = true; retryMs = 500; stalledSince = 0; };
+    s.onclose = function () { if (s !== sock) return; sock = null; wsOpen = false; scheduleWs(); };
+    s.onerror = function () {};
+    s.onmessage = function () {};
+  }
+  function reconnectNow() {
+    dropSocket();
+    if (retryTimer) { clearTimeout(retryTimer); retryTimer = null; }
+    retryMs = 500;
+    wsConnect();
+  }
+
+  setInterval(function () {
+    if (!wsOpen || !sock) return;
+    // Wi-Fi vanished without a clean close: data piles up unsent. Reconnect.
+    if (sock.bufferedAmount > 1024) {
+      if (!stalledSince) stalledSince = now();
+      else if (now() - stalledSince > 2000) { reconnectNow(); return; }
+    } else stalledSince = 0;
+    if (!started) return;
+    var v = sensorAlive() ? cur.value : 0;
+    try { sock.send('{"type":"steer","value":' + (Math.round(v * 1000) / 1000) + '}'); } catch (e) {}
+  }, CFG.sendMs);
+
+  wsConnect();
+
+  // ---------------------------------------------------------------- start / fullscreen / wake lock
+  function lockLandscape() {
+    try {
+      if (screen.orientation && screen.orientation.lock) screen.orientation.lock('landscape').catch(function () {});
+    } catch (e) {}
+  }
+  function goFullscreen() {
+    var el = document.documentElement, p = null;
+    try {
+      if (document.fullscreenElement || document.webkitFullscreenElement) { lockLandscape(); return; }
+      if (el.requestFullscreen) p = el.requestFullscreen({ navigationUI: 'hide' });
+      else if (el.webkitRequestFullscreen) p = el.webkitRequestFullscreen();
+    } catch (e) {}
+    Promise.resolve(p).then(lockLandscape, lockLandscape);
+  }
+  function requestWakeLock() {
+    if (!('wakeLock' in navigator) || wakeLock) return;
+    navigator.wakeLock.request('screen').then(function (l) {
+      wakeLock = l;
+      l.addEventListener('release', function () { wakeLock = null; });
+    }).catch(function () {});
+  }
+  function requestSensorPermission() {
+    var ps = [];
+    [window.DeviceMotionEvent, window.DeviceOrientationEvent].forEach(function (C) {
+      if (C && typeof C.requestPermission === 'function') {
+        try {
+          ps.push(C.requestPermission().then(function (r) { if (r !== 'granted') permDenied = true; },
+                                             function () { permDenied = true; }));
+        } catch (e) {}
+      }
+    });
+    return Promise.all(ps);
+  }
+
+  $('startBtn').addEventListener('click', function () {
+    // Everything that needs the user gesture is called synchronously here.
+    requestSensorPermission();
+    goFullscreen();
+    requestWakeLock();
+    started = true;
+    startAt = now();
+    helpDismissed = false;
+    $('start').hidden = true;
+    if (!sock) reconnectNow();
+  });
+
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'visible') {
+      if (started) requestWakeLock();
+      if (!sock) reconnectNow();
+    }
+  });
+  window.addEventListener('online', function () { if (!sock) reconnectNow(); });
+
+  // Any tap on the wheel while playing restores fullscreen / wake lock (e.g. after returning to the tab).
+  $('stage').addEventListener('click', function () {
+    if (!started) return;
+    if (!(document.fullscreenElement || document.webkitFullscreenElement)) goFullscreen();
+    requestWakeLock();
+  });
+
+  // ---------------------------------------------------------------- dad panel (long-press gear)
+  var gearTimer = null;
+  $('gear').addEventListener('pointerdown', function () {
+    clearTimeout(gearTimer);
+    gearTimer = setTimeout(function () { $('panel').hidden = false; }, 600);
+  });
+  ['pointerup', 'pointercancel', 'pointerleave'].forEach(function (ev) {
+    $('gear').addEventListener(ev, function () { clearTimeout(gearTimer); });
+  });
+  function saveOffset() { try { localStorage.setItem('cami.offsetDeg', String(offsetDeg)); } catch (e) {} }
+  $('pRecenter').addEventListener('click', function () {
+    if (!grav) return;
+    var r = SteerMath.wheelAngle(grav[0], grav[1], grav[2], frame());
+    if (Math.abs(r.angle) > 60) { // held in a different orientation: pick that orientation instead
+      frameOverride = SteerMath.snapFrame(grav[0], grav[1]);
+      r = SteerMath.wheelAngle(grav[0], grav[1], grav[2], frame());
+    }
+    offsetDeg = Math.round(SteerMath.wrapDeg(r.angle) * 10) / 10;
+    saveOffset();
+  });
+  $('pLevel').addEventListener('click', function () { offsetDeg = 0; frameOverride = null; saveOffset(); });
+  $('pFull').addEventListener('click', function () { goFullscreen(); requestWakeLock(); });
+  $('pReload').addEventListener('click', function () { location.reload(); });
+  $('pClose').addEventListener('click', function () { $('panel').hidden = true; });
+  $('helpReload').addEventListener('click', function () { location.reload(); });
+  $('helpDismiss').addEventListener('click', function () { helpDismissed = true; $('help').hidden = true; });
+
+  // ---------------------------------------------------------------- status + diagnostics
+  function httpsUrl() { return 'https://' + location.hostname + ':' + CFG.httpsPort + '/controller'; }
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+
+  function diagnose() {
+    if (!window.isSecureContext) {
+      return 'Motion sensors only work over <b>https</b>. Open this instead:<br><a href="' + esc(httpsUrl()) + '">' +
+        esc(httpsUrl()) + '</a><br>(tap "Advanced" &rarr; "Proceed" on the certificate warning).';
+    }
+    if (!('DeviceMotionEvent' in window) && !('DeviceOrientationEvent' in window)) {
+      return 'This browser has no motion sensor support. Use Chrome on the phone.';
+    }
+    if (permDenied) {
+      return 'Motion sensor permission was denied. Reload the page and allow it.';
+    }
+    return 'No motion sensor data is arriving.<br>In Chrome: &#8942; menu &rarr; <b>Settings &rarr; Site settings &rarr; Motion sensors</b> ' +
+      '&rarr; allow (and make sure <b>' + esc(location.host) + '</b> is not in the "Blocked" list; you can also tap the ' +
+      'icon left of the address bar &rarr; Permissions). Then reload this page.';
+  }
+
+  var lastStatusText = '', lastMsg = '', lastStartMsg = null;
+  function renderStatus() {
+    var t = now();
+    var alive = sensorAlive();
+    dotEl.className = !wsOpen ? '' : (alive ? 'ok' : 'warn');
+
+    // Help overlay: started, but no sensor data for a while.
+    var noData = started && t - Math.max(startAt, lastSampleAt) > CFG.noSensorMs;
+    $('help').hidden = !(noData && !helpDismissed);
+    if (noData && !helpDismissed) {
+      var m = diagnose();
+      if (m !== lastMsg) { $('helpMsg').innerHTML = m; lastMsg = m; }
+    }
+
+    // Start screen hint (before starting).
+    if (!started) {
+      var s = '';
+      if (!window.isSecureContext) s = diagnose();
+      else if (!wsOpen) s = 'Connecting to the game&hellip;';
+      if (s !== lastStartMsg) { $('startMsg').innerHTML = s; lastStartMsg = s; }
+    }
+
+    if (!$('panel').hidden) {
+      var txt =
+        'Server: ' + (wsOpen ? 'connected' : 'disconnected (retrying)') + '<br>' +
+        'Sensor: ' + (alive ? source : 'no data') + (motionSign < 0 ? ' (sign flipped)' : '') + '<br>' +
+        'Angle: ' + cur.angle.toFixed(1) + '&deg; &nbsp; steer: ' + cur.value.toFixed(2) +
+        ' &nbsp; tilt-ok: ' + Math.round(cur.planar * 100) + '%<br>' +
+        'Straight offset: ' + offsetDeg.toFixed(1) + '&deg; &nbsp; frame: ' + frame() + '&deg; (screen ' + screenAngle() + '&deg;)<br>' +
+        'Full lock at &plusmn;' + CFG.fullDeg + '&deg;, dead zone &plusmn;' + CFG.deadDeg + '&deg;<br>' +
+        'Wake lock: ' + (wakeLock ? 'on' : 'off') + ' &nbsp; Fullscreen: ' +
+        ((document.fullscreenElement || document.webkitFullscreenElement) ? 'yes' : 'no');
+      if (txt !== lastStatusText) { $('pStatus').innerHTML = txt; lastStatusText = txt; }
+    }
+  }
+
+  // ---------------------------------------------------------------- no accidental zoom/scroll/menus
+  ['contextmenu', 'selectstart', 'dragstart', 'gesturestart', 'dblclick'].forEach(function (ev) {
+    document.addEventListener(ev, function (e) { e.preventDefault(); });
+  });
+  document.addEventListener('touchmove', function (e) {
+    if (e.target.closest && e.target.closest('#panel, #help')) return;
+    e.preventDefault();
+  }, { passive: false });
+  document.addEventListener('touchstart', function (e) {
+    if (e.touches.length > 1) e.preventDefault(); // no pinch
+  }, { passive: false });
+
+  requestAnimationFrame(update);
+})();
+</script>
+</body>
+</html>
