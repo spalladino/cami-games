@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-100 -100 200 200">
+  <rect x="-100" y="-100" width="200" height="200" rx="40" fill="#8ecae6"/>
+  <g stroke="#4361ee" stroke-width="17" stroke-linecap="round">
+    <line x1="0" y1="0" x2="-62" y2="8"/><line x1="0" y1="0" x2="62" y2="8"/><line x1="0" y1="0" x2="0" y2="62"/>
+  </g>
+  <g fill="none" stroke-width="22" transform="rotate(-90)">
+    <circle r="68" stroke="#ff595e" stroke-dasharray="71.7 355.6" stroke-dashoffset="0"/>
+    <circle r="68" stroke="#ff924c" stroke-dasharray="71.7 355.6" stroke-dashoffset="-71.2"/>
+    <circle r="68" stroke="#ffca3a" stroke-dasharray="71.7 355.6" stroke-dashoffset="-142.4"/>
+    <circle r="68" stroke="#8ac926" stroke-dasharray="71.7 355.6" stroke-dashoffset="-213.6"/>
+    <circle r="68" stroke="#1982c4" stroke-dasharray="71.7 355.6" stroke-dashoffset="-284.8"/>
+    <circle r="68" stroke="#6a4c93" stroke-dasharray="71.7 355.6" stroke-dashoffset="-356"/>
+  </g>
+  <circle r="27" fill="#ffc300" stroke="#fb8500" stroke-width="4"/>
+  <circle cx="-9" cy="-6" r="3.8" fill="#3a0ca3"/><circle cx="9" cy="-6" r="3.8" fill="#3a0ca3"/>
+  <path d="M-12 4 Q0 17 12 4" stroke="#3a0ca3" stroke-width="3.8" fill="none" stroke-linecap="round"/>
+</svg>

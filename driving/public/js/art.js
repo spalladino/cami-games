@@ -2145,7 +2145,7 @@
   var waitLayout = { key: '', L: null };
   var INSTR = [
     'Scan with the phone, open in Chrome',
-    'Accept the certificate warning once (Advanced → Proceed)',
+    'Tap Start, then choose “Cami”',
     'Or press ← → to test with the keyboard'
   ];
   function layoutWaiting(ctx, w, h, url) {
@@ -2245,7 +2245,7 @@
 
   function drawWaiting(ctx, w, h, t, qrImg, url, soundOn) {
     t = num(t, 0);
-    url = url ? String(url) : 'https://…:8443/controller';
+    url = url ? String(url) : 'https://spalladino.github.io/cami-games/driving/controller.html';
     var A0 = ctx.globalAlpha;
     ctx.save();
     ctx.lineJoin = 'round'; ctx.lineCap = 'round';
@@ -2416,7 +2416,7 @@
 
   function drawPaused(ctx, w, h, t, qrImg, url) {
     t = num(t, 0);
-    url = url ? String(url) : 'https://…:8443/controller';
+    url = url ? String(url) : 'https://spalladino.github.io/cami-games/driving/controller.html';
     ctx.save();
     ctx.fillStyle = 'rgba(14,18,44,0.5)';
     ctx.fillRect(0, 0, w, h);

@@ -7,6 +7,8 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="format-detection" content="telephone=no">
 <title>Steering wheel</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
 <style>
   :root {
     --sky1: #8ecae6;
@@ -70,8 +72,12 @@
   .small b { color: #1d3557; }
   .msg { font-size: 14px; line-height: 1.4; color: #7a1020; max-width: 36em; }
   .msg a { color: #0a58ca; word-break: break-all; }
+  .msg.hint { color: #335; }
+  .msg ul { text-align: left; margin: 8px auto 0; padding-left: 1.3em; max-width: 34em; }
+  .msg li { margin: 3px 0; }
+  .msg .why { color: #556; font-size: 12px; }
 
-  #help { background: rgba(255,245,235,0.97); }
+  #help { background: rgb(255,245,235); overflow: auto; justify-content: safe center; touch-action: pan-y; }
   #help h2 { margin: 0; font-size: 18px; }
   button.btn {
     font: inherit; font-size: 14px; padding: 10px 14px; border-radius: 10px;
@@ -138,6 +144,9 @@
     <button class="btn" id="pRecenter">Set straight = current position</button>
     <button class="btn" id="pLevel">Reset: straight = level</button>
   </div>
+  <div class="row" id="pBleRow" hidden>
+    <button class="btn" id="pBle">Choose Bluetooth device&hellip;</button>
+  </div>
   <div class="row">
     <button class="btn" id="pFull">Fullscreen</button>
     <button class="btn" id="pReload">Reload</button>
@@ -149,15 +158,16 @@
   <button id="startBtn" aria-label="Start">
     <svg viewBox="0 0 10 10"><path d="M3 1.8 L8.4 5 L3 8.2 Z" fill="#fff" stroke="#fff" stroke-width="0.8" stroke-linejoin="round"/></svg>
   </button>
-  <div class="small"><b>Dad:</b> tap the green button, then hand over the phone sideways, screen facing her, like a steering wheel.
+  <div class="small"><b>Dad:</b> tap the green button<span id="startBle" hidden>, choose <b>Cami</b> in the Bluetooth list</span>, then hand over the phone sideways, screen facing her, like a steering wheel.
     Turning it clockwise steers right. Long-press &#9881; (top-right) for settings.</div>
   <div id="startMsg" class="msg"></div>
 </div>
 
 <div id="help" class="overlay" hidden>
-  <h2>Steering sensor not working</h2>
+  <h2 id="helpTitle">Steering sensor not working</h2>
   <div id="helpMsg" class="msg"></div>
   <div class="row" style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center">
+    <button class="btn primary" id="helpRetry" hidden>Try again</button>
     <button class="btn primary" id="helpReload">Reload page</button>
     <button class="btn" id="helpDismiss">Dismiss</button>
   </div>
@@ -240,7 +250,11 @@ var SteerMath = (function () {
     sendMs: 33,       // ~30 Hz
     visualDeg: 45,    // how far the on-screen wheel turns at full lock
     noSensorMs: 2000, // show the dad help if no sensor data within this time
-    httpsPort: 8443
+    httpsPort: 8443,
+    localPorts: ['8080', '8443'], // served by the local game server -> WebSocket, else Bluetooth
+    bleKeepAliveMs: 250,          // BLE: resend an unchanged value at least this often
+    bleConnectTimeoutMs: 10000,   // BLE: give up on one GATT connect/discovery step after this
+    blePickAgainMs: 10000         // BLE: Start shows the chooser again if the known device kept failing this long
   };
 
   var $ = function (id) { return document.getElementById(id); };
@@ -363,55 +377,367 @@ var SteerMath = (function () {
     requestAnimationFrame(update);
   }
 
-  // ---------------------------------------------------------------- websocket
-  var sock = null, wsOpen = false, retryMs = 500, retryTimer = null, stalledSince = 0;
+  // ---------------------------------------------------------------- transports
+  // Two ways to get the steering to the computer, behind one tiny interface:
+  //   kind              'ws' | 'ble'
+  //   send(value)       called every CFG.sendMs; value -1..1, or null before Start
+  //   status()          'ok' (connected and delivering) | 'connecting' | 'off'
+  //   onstatus          set by the page; called with status() when it changes
+  //   begin()           called FIRST and synchronously in the Start tap (Web Bluetooth's device
+  //                     chooser needs the tap's user activation, and requestFullscreen consumes
+  //                     it). Resolves 'ok', 'cancelled', or { error }.
+  //   pick()            like begin(), but always shows the Bluetooth chooser (dad panel)
+  //   wake()            reconnect now if disconnected (tab visible again, back online)
+  //   startHint()       html for the start screen ('' = nothing to say)
+  //   info()            html lines for the dad panel
+  //   problem(error)    dad-readable html for a failed begin()
+  // The local game server (ports 8080/8443) gets the WebSocket; anything else (GitHub Pages)
+  // has no server behind it, so it talks Bluetooth LE to the computer directly.
+  function pickTransportKind() {
+    var q = /[?&]transport=(ws|ble)\b/.exec(location.search);
+    if (q) return q[1];
+    return CFG.localPorts.indexOf(location.port) >= 0 ? 'ws' : 'ble';
+  }
 
-  function wsUrl() {
-    return (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws?role=controller';
-  }
-  function scheduleWs() {
-    if (retryTimer) return;
-    retryTimer = setTimeout(function () { retryTimer = null; wsConnect(); }, retryMs);
-    retryMs = Math.min(retryMs * 2, 5000);
-  }
-  function dropSocket() {
-    var s = sock;
-    sock = null; wsOpen = false;
-    if (s) {
-      s.onopen = s.onclose = s.onerror = s.onmessage = null;
-      try { s.close(); } catch (e) {}
+  // ---------------------------------------------------------------- websocket transport
+  function makeWsTransport() {
+    var t = { kind: 'ws', onstatus: null };
+    var sock = null, wsOpen = false, retryMs = 500, retryTimer = null, stalledSince = 0;
+    var lastEmitted = null;
+
+    function emit() {
+      var s = t.status();
+      if (s === lastEmitted) return;
+      lastEmitted = s;
+      if (t.onstatus) { try { t.onstatus(s); } catch (e) {} }
     }
-  }
-  function wsConnect() {
-    if (sock && (sock.readyState === 0 || sock.readyState === 1)) return;
-    var s;
-    try { s = new WebSocket(wsUrl()); } catch (e) { scheduleWs(); return; }
-    sock = s;
-    s.onopen = function () { if (s !== sock) return; wsOpen = true; retryMs = 500; stalledSince = 0; };
-    s.onclose = function () { if (s !== sock) return; sock = null; wsOpen = false; scheduleWs(); };
-    s.onerror = function () {};
-    s.onmessage = function () {};
-  }
-  function reconnectNow() {
-    dropSocket();
-    if (retryTimer) { clearTimeout(retryTimer); retryTimer = null; }
-    retryMs = 500;
+    function wsUrl() {
+      return (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws?role=controller';
+    }
+    function scheduleWs() {
+      if (retryTimer) return;
+      retryTimer = setTimeout(function () { retryTimer = null; wsConnect(); }, retryMs);
+      retryMs = Math.min(retryMs * 2, 5000);
+    }
+    function dropSocket() {
+      var s = sock;
+      sock = null; wsOpen = false;
+      if (s) {
+        s.onopen = s.onclose = s.onerror = s.onmessage = null;
+        try { s.close(); } catch (e) {}
+      }
+      emit();
+    }
+    function wsConnect() {
+      if (sock && (sock.readyState === 0 || sock.readyState === 1)) return;
+      var s;
+      try { s = new WebSocket(wsUrl()); } catch (e) { scheduleWs(); return; }
+      sock = s;
+      s.onopen = function () { if (s !== sock) return; wsOpen = true; retryMs = 500; stalledSince = 0; emit(); };
+      s.onclose = function () { if (s !== sock) return; sock = null; wsOpen = false; emit(); scheduleWs(); };
+      s.onerror = function () {};
+      s.onmessage = function () {};
+    }
+    function reconnectNow() {
+      dropSocket();
+      if (retryTimer) { clearTimeout(retryTimer); retryTimer = null; }
+      retryMs = 500;
+      wsConnect();
+    }
+
+    t.send = function (value) {
+      if (!wsOpen || !sock) return;
+      // Wi-Fi vanished without a clean close: data piles up unsent. Reconnect.
+      if (sock.bufferedAmount > 1024) {
+        if (!stalledSince) stalledSince = now();
+        else if (now() - stalledSince > 2000) { reconnectNow(); return; }
+      } else stalledSince = 0;
+      if (value == null) return; // not started yet
+      try { sock.send('{"type":"steer","value":' + (Math.round(value * 1000) / 1000) + '}'); } catch (e) {}
+    };
+    t.status = function () { return wsOpen ? 'ok' : 'off'; };
+    t.begin = function () { if (!sock) reconnectNow(); return Promise.resolve('ok'); };
+    t.pick = t.begin;
+    t.wake = function () { if (!sock) reconnectNow(); };
+    t.startHint = function () { return wsOpen ? '' : 'Connecting to the game&hellip;'; };
+    t.info = function () {
+      return 'Transport: WebSocket (' + esc(location.host) + ')<br>' +
+        'Server: ' + (wsOpen ? 'connected' : 'disconnected (retrying)');
+    };
+    t.problem = function () { return ''; };
+
     wsConnect();
+    return t;
   }
+
+  // ---------------------------------------------------------------- bluetooth transport
+  // GATT contract with the computer (a BlueZ peripheral advertising the local name "Cami"):
+  // one write-only characteristic, value = 1 byte int8 = round(steer * 127).
+  // Writes go out ~30 Hz while the value changes, and at least every CFG.bleKeepAliveMs when
+  // it does not (the computer treats >1.5 s of silence as "controller gone"). Never more than one
+  // write in flight: if the previous one has not resolved, skip the tick; the next tick sends the
+  // newest value anyway.
+  function makeBleTransport() {
+    var SERVICE = '8f1c0a20-5b7e-4d2a-9c3e-1a2b3c4d5e60';
+    var CHARACTERISTIC = '8f1c0a21-5b7e-4d2a-9c3e-1a2b3c4d5e60';
+    var bt = navigator.bluetooth || null;
+    var t = { kind: 'ble', onstatus: null };
+
+    var device = null, chr = null;
+    var phase = 'idle'; // idle (no device) | picking | connecting | connected | waiting (retry backoff)
+    var attempt = 0, retryMs = 500, retryTimer = null, failingSince = 0, watching = null;
+    var inFlight = false, useNoResp = true, lastByte = null, lastWriteAt = -1e9, lastOkAt = -1e9, writeErrs = 0;
+    var okCount = 0, rate = 0, rateT0 = now();
+    var lastError = '', lastEmitted = null, cancelledOnce = false;
+
+    function emit() {
+      var s = t.status();
+      if (s === lastEmitted) return;
+      lastEmitted = s;
+      if (t.onstatus) { try { t.onstatus(s); } catch (e) {} }
+    }
+    function setPhase(p) { phase = p; emit(); }
+    function errText(e) {
+      if (!e) return '';
+      if (typeof e === 'string') return e;
+      return (e.name && e.name !== 'Error' ? e.name + ': ' : '') + (e.message || String(e));
+    }
+    function isCancel(e) { return !!e && /cancel/i.test(String(e.message || '')); }
+    function withTimeout(p, ms, what) {
+      return new Promise(function (resolve, reject) {
+        var to = setTimeout(function () { reject(new Error(what + ' timed out')); }, ms);
+        Promise.resolve(p).then(function (v) { clearTimeout(to); resolve(v); },
+                                function (e) { clearTimeout(to); reject(e); });
+      });
+    }
+
+    function connect() {
+      if (!device || phase === 'connecting' || phase === 'connected') return;
+      if (retryTimer) { clearTimeout(retryTimer); retryTimer = null; }
+      var my = ++attempt, d = device;
+      setPhase('connecting');
+      withTimeout(d.gatt.connect(), CFG.bleConnectTimeoutMs, 'GATT connect')
+        .then(function (server) {
+          if (my !== attempt) throw new Error('stale');
+          return withTimeout(server.getPrimaryService(SERVICE), CFG.bleConnectTimeoutMs, 'getPrimaryService');
+        })
+        .then(function (svc) { return withTimeout(svc.getCharacteristic(CHARACTERISTIC), CFG.bleConnectTimeoutMs, 'getCharacteristic'); })
+        .then(function (c) {
+          if (my !== attempt || d !== device) return;
+          chr = c; inFlight = false; lastByte = null; writeErrs = 0;
+          retryMs = 500; failingSince = 0; lastError = '';
+          useNoResp = typeof c.writeValueWithoutResponse === 'function' &&
+            !(c.properties && c.properties.writeWithoutResponse === false && c.properties.write);
+          stopWatching();
+          setPhase('connected');
+        })
+        .catch(function (e) {
+          if (my !== attempt || d !== device) return;
+          lastError = errText(e);
+          retryLater();
+          try { if (d.gatt.connected) d.gatt.disconnect(); } catch (x) {}
+        });
+    }
+
+    // Backoff 0.5 s -> 1 -> 2 -> 4 -> 5 s, forever (no user gesture needed for gatt.connect()).
+    function retryLater() {
+      chr = null; inFlight = false;
+      if (!failingSince) failingSince = now();
+      setPhase('waiting');
+      if (retryTimer) return;
+      var ms = retryMs;
+      retryMs = Math.min(retryMs * 2, 5000);
+      retryTimer = setTimeout(function () { retryTimer = null; connect(); }, ms);
+      watchAds();
+    }
+
+    function onDisconnected(ev) {
+      if (ev && ev.target && ev.target !== device) return;
+      chr = null; inFlight = false;
+      if (phase === 'connecting') return; // the pending attempt fails and schedules the retry itself
+      if (phase === 'connected') lastError = 'Disconnected (computer out of range or game server stopped?)';
+      retryLater();
+    }
+
+    // A device restored with getDevices() may not be connectable until Chrome has seen it
+    // advertise in this session; watching advertisements makes Chrome scan for it.
+    function watchAds() {
+      if (watching || !device || typeof device.watchAdvertisements !== 'function') return;
+      var ctl = typeof AbortController === 'function' ? new AbortController() : null;
+      watching = { d: device, ctl: ctl };
+      try {
+        var p = device.watchAdvertisements(ctl ? { signal: ctl.signal } : undefined);
+        if (p && p.catch) p.catch(function () {});
+      } catch (e) {}
+    }
+    function stopWatching() {
+      if (!watching) return;
+      try { if (watching.ctl) watching.ctl.abort(); } catch (e) {}
+      watching = null;
+    }
+
+    function adopt(d) {
+      if (device !== d) {
+        if (device) {
+          device.removeEventListener('gattserverdisconnected', onDisconnected);
+          stopWatching();
+          try { device.gatt.disconnect(); } catch (e) {}
+        }
+        device = d;
+        d.addEventListener('gattserverdisconnected', onDisconnected);
+        attempt++; chr = null; inFlight = false; phase = 'idle';
+        retryMs = 500; failingSince = 0;
+        if (retryTimer) { clearTimeout(retryTimer); retryTimer = null; }
+      }
+      if (phase === 'waiting') retryMs = 500;
+      connect();
+    }
+
+    function requestDevice() {
+      // MUST stay synchronous up to the requestDevice() call: it needs the tap's user activation.
+      if (!bt) return Promise.resolve({ error: new Error('navigator.bluetooth is missing') });
+      var p;
+      try {
+        p = bt.requestDevice({
+          filters: [{ services: [SERVICE] }, { name: 'Cami' }],
+          optionalServices: [SERVICE]
+        });
+      } catch (e) { p = Promise.reject(e); }
+      var before = phase;
+      if (phase === 'idle') setPhase('picking');
+      return Promise.resolve(p).then(function (d) {
+        cancelledOnce = false;
+        if (phase === 'picking') phase = 'idle';
+        adopt(d);
+        return 'ok';
+      }, function (e) {
+        if (phase === 'picking') setPhase(before === 'picking' ? 'idle' : before);
+        if (isCancel(e)) { cancelledOnce = !device; return 'cancelled'; }
+        lastError = errText(e);
+        emit();
+        return { error: e };
+      });
+    }
+
+    t.begin = function () {
+      // Known device (picked earlier, or restored after a reload): no chooser, unless it has
+      // been failing to connect for a while (then let dad pick again).
+      if (device && !(failingSince && now() - failingSince > CFG.blePickAgainMs)) {
+        if (phase === 'waiting') { retryMs = 500; connect(); }
+        return Promise.resolve('ok');
+      }
+      return requestDevice();
+    };
+    t.pick = requestDevice;
+    t.wake = function () { if (device && phase === 'waiting') { retryMs = 500; connect(); } };
+
+    t.send = function (value) {
+      var tn = now();
+      if (tn - rateT0 >= 1000) { rate = okCount * 1000 / (tn - rateT0); okCount = 0; rateT0 = tn; }
+      if (!chr || phase !== 'connected' || inFlight) return;
+      var v = value == null ? 0 : value; // before Start: keep the link alive with "straight"
+      var b = Math.round(SteerMath.clamp(v, -1, 1) * 127);
+      if (b === lastByte && tn - lastWriteAt < CFG.bleKeepAliveMs) return;
+      var c = chr, buf = new Uint8Array([b & 0xff]), p;
+      inFlight = true; lastByte = b; lastWriteAt = tn;
+      try {
+        p = useNoResp ? c.writeValueWithoutResponse(buf) : c.writeValue(buf);
+      } catch (e) { p = Promise.reject(e); }
+      Promise.resolve(p).then(function () {
+        if (c !== chr) return;
+        inFlight = false; okCount++; lastOkAt = now(); writeErrs = 0;
+        emit();
+      }, function (e) {
+        if (c !== chr) return;
+        inFlight = false; lastByte = null; lastError = 'write: ' + errText(e);
+        if (useNoResp && e && (e.name === 'NotSupportedError' || e.name === 'TypeError')) { useNoResp = false; return; }
+        // Writes keep failing although Chrome thinks we are connected: start over.
+        if (++writeErrs >= 15 && device) {
+          writeErrs = 0;
+          retryLater();
+          try { device.gatt.disconnect(); } catch (x) {}
+        }
+        emit();
+      });
+    };
+
+    t.status = function () {
+      if (phase === 'connected') return now() - lastOkAt < 1000 ? 'ok' : 'connecting';
+      if (phase === 'connecting' || phase === 'picking') return 'connecting';
+      return 'off';
+    };
+
+    function devName() { return device ? (device.name || device.id || 'unnamed') : ''; }
+
+    t.startHint = function () {
+      if (!bt) return 'This browser has no Bluetooth. Open this page in <b>Chrome</b> on the Android phone.';
+      if (device) {
+        if (phase === 'connected') return t.status() === 'ok' ? '<span class="hint">Connected to <b>' + esc(devName()) + '</b>.</span>' : '';
+        return 'Connecting to <b>' + esc(devName()) + '</b> over Bluetooth&hellip;';
+      }
+      if (cancelledOnce) {
+        return '<span class="hint">No device chosen. If <b>Cami</b> is not in the list, check that the game server is ' +
+          'running on the computer and that Bluetooth is on (phone and computer).</span>';
+      }
+      return '';
+    };
+
+    t.info = function () {
+      var st = { idle: 'no device chosen', picking: 'choosing a device', connecting: 'connecting',
+                 connected: 'connected', waiting: 'disconnected (retrying)' }[phase];
+      return 'Transport: Bluetooth' + (bt ? '' : ' (NOT available in this browser)') + '<br>' +
+        'Device: ' + (device ? esc(devName()) : '&ndash;') + ' &nbsp; state: ' + st + '<br>' +
+        'Writes/s: ' + rate.toFixed(1) + ' &nbsp; last byte: ' + (lastByte === null ? '&ndash;' : lastByte) +
+        (useNoResp ? '' : ' (with response)') + '<br>' +
+        'Last error: ' + (lastError ? esc(lastError) : 'none');
+    };
+
+    t.problem = function (e) {
+      var secure = window.isSecureContext && location.protocol === 'https:' ||
+                   location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+      var here = 'https://' + location.host + location.pathname;
+      var why = !bt ? 'This browser has no Web Bluetooth.' : (e ? 'Error: ' + esc(errText(e)) : '');
+      return '<b>Could not connect to the computer over Bluetooth.</b>' +
+        (why ? '<br><span class="why">' + why + '</span>' : '') +
+        '<ul>' +
+        (!bt ? '<li>Open this page in <b>Chrome</b> on the Android phone (not Firefox, Samsung Internet or an iPhone).</li>' : '') +
+        '<li>The phone&rsquo;s <b>Bluetooth is on</b>.</li>' +
+        '<li>Chrome may use <b>Nearby devices</b>: Android <b>Settings &rarr; Apps &rarr; Chrome &rarr; Permissions &rarr; ' +
+        'Nearby devices &rarr; Allow</b>.</li>' +
+        '<li>Older Android (11 or below): <b>Location</b> is on, and Chrome may use it.</li>' +
+        '<li>The page is opened over <b>https</b>' + (secure ? ' (it is)' :
+          ' (it is NOT: open <a href="' + esc(here) + '">' + esc(here) + '</a>)') + '.</li>' +
+        '<li>The <b>game server is running on the computer</b> (<code>npm start</code>) and the computer&rsquo;s ' +
+        'Bluetooth is on: it shows up as <b>Cami</b> in the list.</li>' +
+        '</ul>';
+    };
+
+    // After a reload: reconnect to the device granted earlier, without the chooser.
+    if (bt && typeof bt.getDevices === 'function') {
+      bt.getDevices().then(function (list) {
+        if (device || !list || !list.length) return;
+        var d = list.filter(function (x) { return x.name === 'Cami'; })[0] || list[0];
+        adopt(d);
+        if (phase !== 'connected') watchAds();
+      }).catch(function () {});
+    }
+    return t;
+  }
+
+  var transport = pickTransportKind() === 'ble' ? makeBleTransport() : makeWsTransport();
+  transport.onstatus = function () { renderStatus(); };
 
   setInterval(function () {
-    if (!wsOpen || !sock) return;
-    // Wi-Fi vanished without a clean close: data piles up unsent. Reconnect.
-    if (sock.bufferedAmount > 1024) {
-      if (!stalledSince) stalledSince = now();
-      else if (now() - stalledSince > 2000) { reconnectNow(); return; }
-    } else stalledSince = 0;
-    if (!started) return;
     var v = sensorAlive() ? cur.value : 0;
-    try { sock.send('{"type":"steer","value":' + (Math.round(v * 1000) / 1000) + '}'); } catch (e) {}
+    transport.send(started ? v : null);
   }, CFG.sendMs);
 
-  wsConnect();
+  // Offline support for the GitHub Pages copy: a network-first service worker (sw.js) keeps
+  // the last good controller.html so the page opens without internet. Not on the local game
+  // server, where it would sit in front of the game too.
+  if (transport.kind === 'ble' && 'serviceWorker' in navigator && window.isSecureContext) {
+    navigator.serviceWorker.register('sw.js').catch(function () {});
+  }
 
   // ---------------------------------------------------------------- start / fullscreen / wake lock
   function lockLandscape() {
@@ -448,27 +774,46 @@ var SteerMath = (function () {
     return Promise.all(ps);
   }
 
-  $('startBtn').addEventListener('click', function () {
-    // Everything that needs the user gesture is called synchronously here.
+  var transportHelp = null; // dad-readable html when the transport could not start (Bluetooth)
+
+  function backToStart() {
+    started = false;
+    $('start').hidden = false;
+    lastStartMsg = null;
+  }
+  function onBeginResult(r) {
+    if (r === 'cancelled') { backToStart(); return; }
+    if (r && r.error) { backToStart(); transportHelp = transport.problem(r.error); lastMsg = ''; }
+    renderStatus();
+  }
+
+  function startTapped() {
+    // Order matters. The Bluetooth chooser needs this tap's user activation, and Chrome's
+    // requestFullscreen() consumes it, so the transport goes first. Everything that needs the
+    // user gesture is called synchronously here, before any await.
+    var begun = transport.begin();
     requestSensorPermission();
     goFullscreen();
     requestWakeLock();
     started = true;
     startAt = now();
     helpDismissed = false;
+    transportHelp = null;
     $('start').hidden = true;
-    if (!sock) reconnectNow();
-  });
+    begun.then(onBeginResult);
+  }
+  $('startBtn').addEventListener('click', startTapped);
 
   document.addEventListener('visibilitychange', function () {
     if (document.visibilityState === 'visible') {
       if (started) requestWakeLock();
-      if (!sock) reconnectNow();
+      transport.wake();
     }
   });
-  window.addEventListener('online', function () { if (!sock) reconnectNow(); });
+  window.addEventListener('online', function () { transport.wake(); });
 
-  // Any tap on the wheel while playing restores fullscreen / wake lock (e.g. after returning to the tab).
+  // Any tap on the wheel while playing restores fullscreen / wake lock (e.g. after returning to
+  // the tab, or after the Bluetooth chooser dropped fullscreen).
   $('stage').addEventListener('click', function () {
     if (!started) return;
     if (!(document.fullscreenElement || document.webkitFullscreenElement)) goFullscreen();
@@ -496,11 +841,23 @@ var SteerMath = (function () {
     saveOffset();
   });
   $('pLevel').addEventListener('click', function () { offsetDeg = 0; frameOverride = null; saveOffset(); });
+  $('pBleRow').hidden = transport.kind !== 'ble';
+  $('startBle').hidden = transport.kind !== 'ble';
+  $('pBle').addEventListener('click', function () {
+    transport.pick().then(function (r) {
+      if (r && r.error) { $('panel').hidden = true; transportHelp = transport.problem(r.error); lastMsg = ''; }
+      renderStatus();
+    });
+  });
   $('pFull').addEventListener('click', function () { goFullscreen(); requestWakeLock(); });
   $('pReload').addEventListener('click', function () { location.reload(); });
   $('pClose').addEventListener('click', function () { $('panel').hidden = true; });
   $('helpReload').addEventListener('click', function () { location.reload(); });
-  $('helpDismiss').addEventListener('click', function () { helpDismissed = true; $('help').hidden = true; });
+  $('helpRetry').addEventListener('click', function () { transportHelp = null; startTapped(); });
+  $('helpDismiss').addEventListener('click', function () {
+    if (transportHelp) transportHelp = null; else helpDismissed = true;
+    $('help').hidden = true;
+  });
 
   // ---------------------------------------------------------------- status + diagnostics
   function httpsUrl() { return 'https://' + location.hostname + ':' + CFG.httpsPort + '/controller'; }
@@ -508,8 +865,9 @@ var SteerMath = (function () {
 
   function diagnose() {
     if (!window.isSecureContext) {
-      return 'Motion sensors only work over <b>https</b>. Open this instead:<br><a href="' + esc(httpsUrl()) + '">' +
-        esc(httpsUrl()) + '</a><br>(tap "Advanced" &rarr; "Proceed" on the certificate warning).';
+      var u = transport.kind === 'ble' ? 'https://' + location.host + location.pathname : httpsUrl();
+      return 'Motion sensors only work over <b>https</b>. Open this instead:<br><a href="' + esc(u) + '">' +
+        esc(u) + '</a>' + (transport.kind === 'ble' ? '' : '<br>(tap "Advanced" &rarr; "Proceed" on the certificate warning).');
     }
     if (!('DeviceMotionEvent' in window) && !('DeviceOrientationEvent' in window)) {
       return 'This browser has no motion sensor support. Use Chrome on the phone.';
@@ -522,17 +880,25 @@ var SteerMath = (function () {
       'icon left of the address bar &rarr; Permissions). Then reload this page.';
   }
 
-  var lastStatusText = '', lastMsg = '', lastStartMsg = null;
+  var lastStatusText = '', lastMsg = '', lastStartMsg = null, lastHelpKind = '';
   function renderStatus() {
     var t = now();
     var alive = sensorAlive();
-    dotEl.className = !wsOpen ? '' : (alive ? 'ok' : 'warn');
+    var st = transport.status();
+    dotEl.className = st === 'off' ? '' : (st === 'ok' && alive ? 'ok' : 'warn');
 
-    // Help overlay: started, but no sensor data for a while.
+    // Help overlay: the transport could not start (Bluetooth), or started but no sensor data for a while.
     var noData = started && t - Math.max(startAt, lastSampleAt) > CFG.noSensorMs;
-    $('help').hidden = !(noData && !helpDismissed);
-    if (noData && !helpDismissed) {
-      var m = diagnose();
+    var helpKind = transportHelp ? 'transport' : (noData && !helpDismissed ? 'sensor' : '');
+    $('help').hidden = !helpKind;
+    if (helpKind !== lastHelpKind) {
+      $('helpTitle').textContent = helpKind === 'transport' ? 'Bluetooth not connected' : 'Steering sensor not working';
+      $('helpRetry').hidden = helpKind !== 'transport';
+      $('helpReload').className = helpKind === 'transport' ? 'btn' : 'btn primary';
+      lastHelpKind = helpKind;
+    }
+    if (helpKind) {
+      var m = helpKind === 'transport' ? transportHelp : diagnose();
       if (m !== lastMsg) { $('helpMsg').innerHTML = m; lastMsg = m; }
     }
 
@@ -540,13 +906,13 @@ var SteerMath = (function () {
     if (!started) {
       var s = '';
       if (!window.isSecureContext) s = diagnose();
-      else if (!wsOpen) s = 'Connecting to the game&hellip;';
+      else s = transport.startHint();
       if (s !== lastStartMsg) { $('startMsg').innerHTML = s; lastStartMsg = s; }
     }
 
     if (!$('panel').hidden) {
       var txt =
-        'Server: ' + (wsOpen ? 'connected' : 'disconnected (retrying)') + '<br>' +
+        transport.info() + '<br>' +
         'Sensor: ' + (alive ? source : 'no data') + (motionSign < 0 ? ' (sign flipped)' : '') + '<br>' +
         'Angle: ' + cur.angle.toFixed(1) + '&deg; &nbsp; steer: ' + cur.value.toFixed(2) +
         ' &nbsp; tilt-ok: ' + Math.round(cur.planar * 100) + '%<br>' +

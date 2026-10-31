@@ -1,0 +1,13 @@
+{
+  "name": "Cami Driving steering wheel",
+  "short_name": "Cami wheel",
+  "start_url": "controller.html",
+  "scope": "./",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#d7f0ff",
+  "theme_color": "#8ecae6",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

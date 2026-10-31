@@ -153,7 +153,7 @@
   // Server info: controller URL and QR image for the waiting/paused cards
   // ---------------------------------------------------------------------------
 
-  var ctrlUrl = 'https://' + (location.hostname || 'localhost') + ':8443/controller';
+  var ctrlUrl = 'https://spalladino.github.io/cami-games/driving/controller.html'; // until /info answers
   var qrImg = null;
 
   function loadInfo() {

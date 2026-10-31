@@ -3,6 +3,8 @@
 // - HTTP  :8080 -> the game, for the computer (http://localhost:8080/)
 // - HTTPS :8443 -> the phone steering wheel (https://<lan-ip>:8443/controller)
 // - WebSocket /ws on both ports, one shared hub that relays controller steering to displays.
+// - Bluetooth LE peripheral (ble.js): the phone, running the controller page from GitHub Pages,
+//   writes steering over Web Bluetooth and acts as one more controller in the hub.
 // See docs/ARCHITECTURE.md for the contract.
 
 const fs = require('fs');
@@ -13,6 +15,7 @@ const https = require('https');
 const { execFileSync } = require('child_process');
 const { WebSocketServer, WebSocket } = require('ws');
 const QRCode = require('qrcode');
+const { startBle, LOCAL_NAME: BLE_NAME } = require('./ble');
 
 const HTTP_PORT = Number(process.env.HTTP_PORT) || 8080;
 const HTTPS_PORT = Number(process.env.HTTPS_PORT) || 8443;
@@ -52,8 +55,12 @@ function lanAddresses() {
 }
 
 const LAN = lanAddresses();
-const controllerUrls = LAN.map((x) => `https://${x.address}:${HTTPS_PORT}/controller`);
-const controllerUrl = controllerUrls[0] || `https://localhost:${HTTPS_PORT}/controller`;
+// The phone loads the controller from GitHub Pages and steers over Bluetooth; the LAN https
+// URLs (Wi-Fi WebSocket path) stay available as secondary options.
+const PAGES_CONTROLLER_URL = 'https://spalladino.github.io/cami-games/driving/controller.html';
+const controllerUrl = process.env.CONTROLLER_URL || PAGES_CONTROLLER_URL;
+const lanControllerUrls = LAN.map((x) => `https://${x.address}:${HTTPS_PORT}/controller`);
+const controllerUrls = [controllerUrl, ...lanControllerUrls.filter((u) => u !== controllerUrl)];
 
 // ---------------------------------------------------------------------------
 // Self-signed certificate (generated once, regenerated when the IP set changes)
@@ -155,6 +162,7 @@ async function handleRequest(req, res) {
         gameUrl: `http://localhost:${HTTP_PORT}/`,
         controllers: hub.controllers.size,
         displays: hub.displays.size,
+        bluetooth: ble ? ble.status() : null,
       })
     );
   }
@@ -195,7 +203,7 @@ async function handleRequest(req, res) {
 
 const hub = {
   displays: new Set(),
-  controllers: new Set(),
+  controllers: new Set(), // WebSocket controllers, plus BLE_CONTROLLER while the BLE phone is steering
   lastSteer: 0,
   lastSteerAt: 0,
   lastAnnounced: null,
@@ -223,6 +231,31 @@ function announceControllerStatus() {
   broadcastDisplays({ type: 'controller', connected });
 }
 
+// A steering value from any controller (WebSocket or Bluetooth). Latest message wins.
+function applySteer(value) {
+  let v = Number(value);
+  if (!Number.isFinite(v)) return;
+  v = Math.max(-1, Math.min(1, v));
+  hub.lastSteer = v;
+  hub.lastSteerAt = Date.now();
+  broadcastDisplays({ type: 'steer', value: v });
+}
+
+function addController(c) {
+  hub.controllers.add(c);
+  announceControllerStatus();
+}
+
+function removeController(c) {
+  if (!hub.controllers.delete(c)) return false;
+  announceControllerStatus();
+  return true;
+}
+
+// The Bluetooth phone is one virtual controller in the hub.
+const BLE_CONTROLLER = { role: 'controller', remote: 'bluetooth' };
+let ble = null;
+
 const wss = new WebSocketServer({ noServer: true, maxPayload: 4096 });
 
 wss.on('connection', (ws, req) => {
@@ -237,9 +270,8 @@ wss.on('connection', (ws, req) => {
   ws.on('pong', () => (ws.lastSeen = Date.now()));
 
   if (role === 'controller') {
-    hub.controllers.add(ws);
+    addController(ws);
     console.log(`[ws] controller connected from ${ws.remote} (${hub.controllers.size} total)`);
-    announceControllerStatus();
     ws.on('message', (data, isBinary) => {
       ws.lastSeen = Date.now();
       if (isBinary) return;
@@ -250,13 +282,7 @@ wss.on('connection', (ws, req) => {
         return;
       }
       if (!msg || msg.type !== 'steer') return;
-      let v = Number(msg.value);
-      if (!Number.isFinite(v)) return;
-      v = Math.max(-1, Math.min(1, v));
-      // Multiple controllers: latest message wins.
-      hub.lastSteer = v;
-      hub.lastSteerAt = Date.now();
-      broadcastDisplays({ type: 'steer', value: v });
+      applySteer(msg.value);
     });
   } else {
     hub.displays.add(ws);
@@ -268,10 +294,7 @@ wss.on('connection', (ws, req) => {
 
   ws.on('close', () => {
     if (ws.role === 'controller') {
-      if (hub.controllers.delete(ws)) {
-        console.log(`[ws] controller disconnected (${hub.controllers.size} left)`);
-        announceControllerStatus();
-      }
+      if (removeController(ws)) console.log(`[ws] controller disconnected (${hub.controllers.size} left)`);
     } else if (hub.displays.delete(ws)) {
       console.log(`[ws] display disconnected (${hub.displays.size} left)`);
     }
@@ -370,20 +393,38 @@ async function main() {
   console.log('  CAMI DRIVING is running!');
   console.log(line);
   console.log(`\n  1) On THIS computer, open:   http://localhost:${HTTP_PORT}`);
-  console.log(`\n  2) On the PHONE (same Wi-Fi), open in Chrome:\n\n       ${controllerUrl}\n`);
-  console.log('     The phone will warn about the certificate: tap "Advanced" ->');
-  console.log('     "Proceed to ... (unsafe)". That is expected (self-signed, LAN only).');
-  if (controllerUrls.length > 1) {
-    console.log('\n     If that address does not work, try:');
-    for (const u of controllerUrls.slice(1)) console.log(`       ${u}`);
+  console.log(`\n  2) On the PHONE, open in Chrome:\n\n       ${controllerUrl}\n`);
+  console.log(`     tap Start, then pick "${BLE_NAME}" in the Bluetooth list.`);
+  console.log('     (Bluetooth must be on, on both the phone and this computer.)');
+  if (lanControllerUrls.length) {
+    console.log('\n     Wi-Fi fallback (self-signed certificate, same network):');
+    for (const u of lanControllerUrls) console.log(`       ${u}`);
   }
-  if (!LAN.length) console.log('\n     (No LAN address found - is this computer on Wi-Fi?)');
   try {
     const qr = await QRCode.toString(controllerUrl, { type: 'terminal', small: true });
     console.log('\n     Or scan this with the phone camera:\n');
     console.log(qr.replace(/^/gm, '     '));
   } catch {}
   console.log(line + '\n');
+
+  // Bluetooth steering. Failures only log a warning; everything else keeps working.
+  ble = startBle({
+    onSteer: applySteer,
+    onConnectedChange: (connected) => (connected ? addController(BLE_CONTROLLER) : removeController(BLE_CONTROLLER)),
+  });
 }
+
+// Unregister the Bluetooth advertisement and GATT app on the way out.
+let shuttingDown = false;
+function shutdown(signal) {
+  if (shuttingDown) process.exit(1); // second Ctrl-C: just go
+  shuttingDown = true;
+  console.log(`\n${signal}: shutting down...`);
+  const done = () => process.exit(0);
+  setTimeout(done, 2000).unref();
+  (ble ? ble.stop() : Promise.resolve()).catch(() => {}).then(done);
+}
+process.on('SIGINT', () => shutdown('SIGINT'));
+process.on('SIGTERM', () => shutdown('SIGTERM'));
 
 main();
