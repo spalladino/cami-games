@@ -309,8 +309,8 @@
     ctrlChangedAt = nowSec();
     if (connected) {
       if (state === STATE.WAITING) {
+        // Do not start by itself: wait for the Start button or the phone's smiley.
         snd('connect');
-        enterStarting(true);
       } else if (state === STATE.PAUSED) {
         snd('connect');
         enterStarting(false);
@@ -325,6 +325,39 @@
     }
   }
 
+  // Start from the waiting screen: the Start button, Enter/Space, an arrow key, or the phone's
+  // smiley. Without a phone it starts in keyboard mode (the phone takes over when it connects).
+  function startGame() {
+    if (state !== STATE.WAITING) return;
+    keyboardMode = !ctrlConnected;
+    startHover = false;
+    canvas.style.cursor = '';
+    enterStarting(true);
+  }
+
+  function onStart() {
+    snd('unlock');
+    startGame();
+  }
+
+  var startHover = false;
+  function overStartButton(e) {
+    if (state !== STATE.WAITING || !hasArt() || typeof Art.waitingStartButton !== 'function') return false;
+    var r = canvas.getBoundingClientRect();
+    var x = e.clientX - r.left, y = e.clientY - r.top;
+    var B = Art.waitingStartButton(W, H), m = B.h * 0.1;
+    return x >= B.x - m && x <= B.x + B.w + m && y >= B.y - m && y <= B.y + B.h + m;
+  }
+  canvas.addEventListener('pointermove', function (e) {
+    var over = overStartButton(e);
+    if (over === startHover) return;
+    startHover = over;
+    canvas.style.cursor = over ? 'pointer' : '';
+  });
+  canvas.addEventListener('click', function (e) {
+    if (overStartButton(e)) startGame();
+  });
+
   function keyDir(e) {
     var k = e.key, c = e.code;
     if (k === 'ArrowLeft' || c === 'KeyA' || k === 'a' || k === 'A') return -1;
@@ -335,14 +368,21 @@
   window.addEventListener('keydown', function (e) {
     snd('unlock');
     if (e.code === 'Backquote' || e.key === '`') { debugOn = !debugOn; return; }
+    if ((e.key === 'Enter' || e.key === ' ') && state === STATE.WAITING) {
+      e.preventDefault();
+      startGame();
+      return;
+    }
     var dir = keyDir(e);
     if (!dir) return;
     e.preventDefault();
     if (dir < 0) keyLeft = true; else keyRight = true;
-    // Dad pressing an arrow starts (or resumes) the game in keyboard mode.
-    if (state === STATE.WAITING || state === STATE.PAUSED) {
+    // Dad pressing an arrow starts the game, or resumes it in keyboard mode.
+    if (state === STATE.WAITING) {
+      startGame();
+    } else if (state === STATE.PAUSED) {
       keyboardMode = true;
-      enterStarting(state === STATE.WAITING);
+      enterStarting(false);
     }
   });
   window.addEventListener('keyup', function (e) {
@@ -892,12 +932,12 @@
       ctx.fillStyle = '#7ED957';
       ctx.fillRect(0, 0, W, H);
     } else if (state === STATE.WAITING) {
-      Art.drawWaiting(ctx, W, H, rt, qrImg, ctrlUrl, soundOn());
+      Art.drawWaiting(ctx, W, H, rt, qrImg, ctrlUrl, soundOn(), ctrlConnected, startHover);
     } else {
       drawWorld();
       if (waitFade > 0) {
         ctx.globalAlpha = waitFade;
-        Art.drawWaiting(ctx, W, H, rt, qrImg, ctrlUrl, soundOn());
+        Art.drawWaiting(ctx, W, H, rt, qrImg, ctrlUrl, soundOn(), ctrlConnected, false);
         ctx.globalAlpha = 1;
       }
     }
@@ -961,7 +1001,7 @@
   }
 
   if (typeof Net !== 'undefined' && Net && typeof Net.connect === 'function') {
-    try { Net.connect(onSteer, onControllerStatus); } catch (e) { warnOnce('Net.connect', e); }
+    try { Net.connect(onSteer, onControllerStatus, onStart); } catch (e) { warnOnce('Net.connect', e); }
   } else {
     warnOnce('Net missing', new Error('net.js did not load; keyboard only'));
   }

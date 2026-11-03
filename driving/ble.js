@@ -88,7 +88,7 @@ class SteerCharacteristic extends Interface {
     if (offset !== 0) throw new DBusError('org.bluez.Error.InvalidOffset', 'offset must be 0');
     if (!value || value.length < 1) throw new DBusError('org.bluez.Error.InvalidValueLength', 'expected 1 byte');
     const device = options && options.device ? String(options.device.value) : null;
-    this.onWrite(value[0], device);
+    this.onWrite(value, device);
   }
 }
 SteerCharacteristic.configureMembers({
@@ -169,11 +169,12 @@ ObjectManager.configureMembers({
  *
  * @param {object} opts
  * @param {(value:number) => void} opts.onSteer - steer value -1..1 for every write
+ * @param {() => void} [opts.onStart] - the phone's smiley was tapped (start the game)
  * @param {(connected:boolean) => void} opts.onConnectedChange - BLE controller came/went
  * @param {string} [opts.adapter] - adapter name, default env BLE_ADAPTER or the first one (hci0)
  * @returns {{ stop: () => Promise<void>, status: () => object }}
  */
-function startBle({ onSteer, onConnectedChange, adapter = process.env.BLE_ADAPTER, log = console.log } = {}) {
+function startBle({ onSteer, onStart = () => {}, onConnectedChange, adapter = process.env.BLE_ADAPTER, log = console.log } = {}) {
   const warn = (msg) => log(`[ble] WARNING: ${msg}`);
   const info = (msg) => log(`[ble] ${msg}`);
 
@@ -184,6 +185,7 @@ function startBle({ onSteer, onConnectedChange, adapter = process.env.BLE_ADAPTE
     appRegistered: false,
     advRegistered: false,
     connected: false, // the BLE controller, by write timeout (source of truth)
+    lastTap: 0, // tap id from the last write (byte 1); a new nonzero id means "start"
     lastWriteAt: 0,
     device: null, // D-Bus path of the device that last wrote, when BlueZ tells us
     lastProblem: null, // last warning text, so retries don't spam the log
@@ -204,7 +206,9 @@ function startBle({ onSteer, onConnectedChange, adapter = process.env.BLE_ADAPTE
 
   // --- the virtual controller ------------------------------------------------
 
-  function onWrite(byte, device) {
+  // value: [steer int8, tap id]. The tap id is nonzero for ~1 s after each smiley tap and
+  // changes with every tap; a 1-byte write (older controller page) is steering only.
+  function onWrite(value, device) {
     if (state.stopped) return;
     state.lastWriteAt = Date.now();
     if (device) state.device = device;
@@ -215,7 +219,13 @@ function startBle({ onSteer, onConnectedChange, adapter = process.env.BLE_ADAPTE
     }
     clearTimeout(timeoutTimer);
     timeoutTimer = setTimeout(dropController, state.device ? LINKED_TIMEOUT_MS : CONNECTED_TIMEOUT_MS);
-    onSteer(byteToSteer(byte));
+    onSteer(byteToSteer(value[0]));
+    const tap = value.length >= 2 ? value[1] : 0;
+    if (tap !== 0 && tap !== state.lastTap) {
+      info('smiley tapped: start');
+      onStart();
+    }
+    state.lastTap = tap;
   }
 
   function dropController() {

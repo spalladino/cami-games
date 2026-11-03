@@ -2145,9 +2145,11 @@
   var waitLayout = { key: '', L: null };
   var INSTR = [
     'Scan with the phone, open in Chrome',
-    'Tap Start, then choose “Cami”',
+    'Tap the green button, then choose “Cami”',
+    'Click Start, or tap the smiley on the phone',
     'Or press ← → to test with the keyboard'
   ];
+  var LAST_INSTR = INSTR.length - 1;
   function layoutWaiting(ctx, w, h, url) {
     var key = w + 'x' + h + '|' + url;
     if (waitLayout.key === key) return waitLayout.L;
@@ -2243,7 +2245,59 @@
   var trailP = { kind: 'sparkle', x: 0, y: 0, size: 0, rot: 0, life: 1, color: '#FFFFFF' };
   var TRAIL_COLORS = ['#FF6FB5', '#FFE45C', '#4FC3F7', '#FFFFFF'];
 
-  function drawWaiting(ctx, w, h, t, qrImg, url, soundOn) {
+  // The Start button sits in the middle of the waiting island, inside the car's lap.
+  // Returns its box in CSS pixels, for drawing and for the game's click hit test.
+  function waitingStartButton(w, h) {
+    var u = Math.min(h, w * 0.55);
+    var bw = 0.3 * u, bh = 0.12 * u;
+    return { x: 0.25 * w - bw / 2, y: 0.55 * h - bh / 2 - 0.015 * u, w: bw, h: bh, u: u };
+  }
+
+  // phone: a steering phone is connected; hover: the mouse is over the button.
+  function drawStartButton(ctx, w, h, t, phone, hover) {
+    var B = waitingStartButton(w, h), u = B.u;
+    var cx = B.x + B.w / 2, cy = B.y + B.h / 2;
+    var pulse = phone ? 0.5 + 0.5 * Math.sin(t * 4) : 0;
+    ctx.save();
+    ctx.translate(cx, cy);
+    var sc = (hover ? 1.06 : 1) + 0.04 * pulse;
+    ctx.scale(sc, sc);
+    if (phone) {
+      ctx.globalAlpha *= 0.25 + 0.35 * pulse;
+      ctx.beginPath(); rr(ctx, -B.w / 2 - B.h * 0.14, -B.h / 2 - B.h * 0.14, B.w + B.h * 0.28, B.h * 1.28, B.h * 0.64);
+      ctx.fillStyle = '#FFFFFF'; ctx.fill();
+      ctx.globalAlpha /= 0.25 + 0.35 * pulse;
+    }
+    ctx.fillStyle = 'rgba(40,25,70,0.25)';
+    ctx.beginPath(); rr(ctx, -B.w / 2, -B.h / 2 + B.h * 0.1, B.w, B.h, B.h / 2); ctx.fill();
+    ctx.beginPath(); rr(ctx, -B.w / 2, -B.h / 2, B.w, B.h, B.h / 2);
+    ctx.fillStyle = hover ? '#2FB35C' : '#3DCC6E'; ctx.fill();
+    ctx.lineWidth = Math.max(2, B.h * 0.07); ctx.strokeStyle = '#FFFFFF'; ctx.stroke();
+    // play triangle + label
+    var fs = B.h * 0.5, label = 'Start';
+    ctx.font = font(fs, 900);
+    var lw = ctx.measureText(label).width, tri = B.h * 0.36, gap = B.h * 0.18;
+    var x = -(tri + gap + lw) / 2;
+    ctx.fillStyle = '#FFFFFF';
+    ctx.beginPath(); ctx.moveTo(x, -tri / 2); ctx.lineTo(x + tri, 0); ctx.lineTo(x, tri / 2); ctx.closePath(); ctx.fill();
+    ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    ctx.fillText(label, x + tri + gap, B.h * 0.03);
+    ctx.restore();
+    // phone status under the button
+    var cap = phone ? 'Phone connected ✓' : 'No phone yet';
+    var cfs = 0.036 * u;
+    ctx.save();
+    ctx.font = font(cfs, 800);
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.lineJoin = 'round';
+    ctx.lineWidth = cfs * 0.35; ctx.strokeStyle = '#FFFFFF';
+    ctx.strokeText(cap, cx, B.y + B.h + B.h * 0.12 + cfs * 0.7);
+    ctx.fillStyle = phone ? '#1E8E47' : '#6A5A78';
+    ctx.fillText(cap, cx, B.y + B.h + B.h * 0.12 + cfs * 0.7);
+    ctx.restore();
+  }
+
+  function drawWaiting(ctx, w, h, t, qrImg, url, soundOn, phone, hover) {
     t = num(t, 0);
     url = url ? String(url) : 'https://spalladino.github.io/cami-games/driving/controller.html';
     var A0 = ctx.globalAlpha;
@@ -2287,10 +2341,12 @@
     }
     for (i = 0; i < ISLAND_PROPS.length; i++) {
       var P = ISLAND_PROPS[i], py = icy + P[2] * u;
+      if (Math.abs(P[1]) < 0.18 && Math.abs(P[2]) < 0.09) continue; // under the Start button
       if (py > carY && !drawn) { drawCar(ctx, carX, carY, cw, ch, ang, 0.32, t, EMPTY); drawn = 1; }
       drawProp(ctx, P[0], icx + P[1] * u, py, P[3] * u, t);
     }
     if (!drawn) drawCar(ctx, carX, carY, cw, ch, ang, 0.32, t, EMPTY);
+    drawStartButton(ctx, w, h, t, !!phone, !!hover);
 
     // ---- card for dad ----
     var L = layoutWaiting(ctx, w, h, url);
@@ -2328,11 +2384,11 @@
         ctx.fillStyle = '#FFFFFF';
         ctx.textAlign = 'center';
         ctx.font = font(L.lineFont * 0.72, 900);
-        ctx.fillText(ln.idx < 2 ? String(ln.idx + 1) : '★', bx, ly + L.lineFont * 0.03);
+        ctx.fillText(ln.idx < LAST_INSTR ? String(ln.idx + 1) : '★', bx, ly + L.lineFont * 0.03);
         ctx.textAlign = 'left';
         ctx.font = font(L.lineFont, 700);
       }
-      ctx.fillStyle = ln.idx === 2 ? '#7A6A85' : '#3D2C4E';
+      ctx.fillStyle = ln.idx === LAST_INSTR ? '#7A6A85' : '#3D2C4E';
       ctx.fillText(ln.text, tx, ly);
       y += L.lineH;
     }
@@ -2469,6 +2525,7 @@
     drawRainbow: drawRainbow,
     drawTrafficLight: drawTrafficLight,
     drawWaiting: drawWaiting,
+    waitingStartButton: waitingStartButton,
     drawPaused: drawPaused,
     drawSoundOff: drawSoundOff
   };

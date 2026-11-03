@@ -36,6 +36,17 @@
     filter: drop-shadow(0 1.2vmin 1.2vmin rgba(0,0,0,0.25));
     will-change: transform;
   }
+  /* Tapping the smiley in the middle of the wheel starts the game on the computer. The wheel
+     itself ignores pointer events, so a round invisible button sits on top of the hub. */
+  #hubBtn {
+    position: absolute; left: 50%; top: 50%;
+    width: calc(min(94vw, 94vh) * 0.36); height: calc(min(94vw, 94vh) * 0.36);
+    transform: translate(-50%, -50%); border-radius: 50%;
+    border: 0; padding: 0; background: transparent;
+  }
+  #hub { transform-box: fill-box; transform-origin: center; }
+  #hub.pop { animation: hubPop 0.35s ease-out; }
+  @keyframes hubPop { 0% { transform: scale(1); } 40% { transform: scale(1.25); } 100% { transform: scale(1); } }
   .glow { position: absolute; top: 0; bottom: 0; width: 22vw; opacity: 0; pointer-events: none; }
   .glow.left  { left: 0;  background: linear-gradient(to right, rgba(45,198,83,0.75), rgba(45,198,83,0)); }
   .glow.right { right: 0; background: linear-gradient(to left,  rgba(45,198,83,0.75), rgba(45,198,83,0)); }
@@ -126,12 +137,15 @@
     <circle r="68.5" fill="none" stroke="rgba(255,255,255,0.6)" stroke-width="2"/>
     <!-- top marker, so the "straight" position is obvious -->
     <rect x="-8" y="-95" width="16" height="30" rx="6" fill="#ffffff" stroke="#1d3557" stroke-width="3"/>
-    <!-- hub with a smiley -->
-    <circle r="31" fill="url(#hubG)" stroke="#fb8500" stroke-width="4"/>
-    <circle cx="-10" cy="-7" r="4.2" fill="#3a0ca3"/>
-    <circle cx="10" cy="-7" r="4.2" fill="#3a0ca3"/>
-    <path d="M-14 5 Q0 20 14 5" stroke="#3a0ca3" stroke-width="4.2" fill="none" stroke-linecap="round"/>
+    <!-- hub with a smiley (tap it to start the game) -->
+    <g id="hub">
+      <circle r="31" fill="url(#hubG)" stroke="#fb8500" stroke-width="4"/>
+      <circle cx="-10" cy="-7" r="4.2" fill="#3a0ca3"/>
+      <circle cx="10" cy="-7" r="4.2" fill="#3a0ca3"/>
+      <path d="M-14 5 Q0 20 14 5" stroke="#3a0ca3" stroke-width="4.2" fill="none" stroke-linecap="round"/>
+    </g>
   </svg>
+  <button id="hubBtn" aria-label="Start the game"></button>
 </div>
 
 <div id="dot" title="connection"></div>
@@ -159,7 +173,7 @@
     <svg viewBox="0 0 10 10"><path d="M3 1.8 L8.4 5 L3 8.2 Z" fill="#fff" stroke="#fff" stroke-width="0.8" stroke-linejoin="round"/></svg>
   </button>
   <div class="small"><b>Dad:</b> tap the green button<span id="startBle" hidden>, choose <b>Cami</b> in the Bluetooth list</span>, then hand over the phone sideways, screen facing her, like a steering wheel.
-    Turning it clockwise steers right. Long-press &#9881; (top-right) for settings.</div>
+    Tap the smiley in the middle of the wheel to start the game. Turning it clockwise steers right. Long-press &#9881; (top-right) for settings.</div>
   <div id="startMsg" class="msg"></div>
 </div>
 
@@ -253,6 +267,7 @@ var SteerMath = (function () {
     httpsPort: 8443,
     localPorts: ['8080', '8443'], // served by the local game server -> WebSocket, else Bluetooth
     bleKeepAliveMs: 250,          // BLE: resend an unchanged value at least this often
+    bleTapMs: 1000,               // BLE: keep flagging a smiley tap in every write for this long
     bleConnectTimeoutMs: 10000,   // BLE: give up on one GATT connect/discovery step after this
     blePickAgainMs: 10000         // BLE: Start shows the chooser again if the known device kept failing this long
   };
@@ -381,6 +396,7 @@ var SteerMath = (function () {
   // Two ways to get the steering to the computer, behind one tiny interface:
   //   kind              'ws' | 'ble'
   //   send(value)       called every CFG.sendMs; value -1..1, or null before Start
+  //   tap()             the smiley was tapped: ask the game to start
   //   status()          'ok' (connected and delivering) | 'connecting' | 'off'
   //   onstatus          set by the page; called with status() when it changes
   //   begin()           called FIRST and synchronously in the Start tap (Web Bluetooth's device
@@ -455,6 +471,10 @@ var SteerMath = (function () {
       if (value == null) return; // not started yet
       try { sock.send('{"type":"steer","value":' + (Math.round(value * 1000) / 1000) + '}'); } catch (e) {}
     };
+    t.tap = function () {
+      if (!wsOpen || !sock) return;
+      try { sock.send('{"type":"start"}'); } catch (e) {}
+    };
     t.status = function () { return wsOpen ? 'ok' : 'off'; };
     t.begin = function () { if (!sock) reconnectNow(); return Promise.resolve('ok'); };
     t.pick = t.begin;
@@ -472,7 +492,10 @@ var SteerMath = (function () {
 
   // ---------------------------------------------------------------- bluetooth transport
   // GATT contract with the computer (a BlueZ peripheral advertising the local name "Cami"):
-  // one write-only characteristic, value = 1 byte int8 = round(steer * 127).
+  // one write-only characteristic, value = 2 bytes: [int8 round(steer * 127), tap id].
+  // The tap id is 0, except for CFG.bleTapMs after the smiley was tapped, when it is a nonzero id
+  // that changes with every tap. The computer starts the game when it sees a new nonzero id, so a
+  // tap survives a few lost writes. (A 1-byte write, from an older page, is steering only.)
   // Writes go out ~30 Hz while the value changes, and at least every CFG.bleKeepAliveMs when
   // it does not (the computer treats >1.5 s of silence as "controller gone"). Never more than one
   // write in flight: if the previous one has not resolved, skip the tick; the next tick sends the
@@ -486,6 +509,7 @@ var SteerMath = (function () {
     var device = null, chr = null;
     var phase = 'idle'; // idle (no device) | picking | connecting | connected | waiting (retry backoff)
     var attempt = 0, retryMs = 500, retryTimer = null, failingSince = 0, watching = null;
+    var tapId = 0, tapUntil = 0, lastTap = 0;
     var inFlight = false, useNoResp = true, lastByte = null, lastWriteAt = -1e9, lastOkAt = -1e9, writeErrs = 0;
     var okCount = 0, rate = 0, rateT0 = now();
     var lastError = '', lastEmitted = null, cancelledOnce = false;
@@ -637,8 +661,10 @@ var SteerMath = (function () {
       if (!chr || phase !== 'connected' || inFlight) return;
       var v = value == null ? 0 : value; // before Start: keep the link alive with "straight"
       var b = Math.round(SteerMath.clamp(v, -1, 1) * 127);
-      if (b === lastByte && tn - lastWriteAt < CFG.bleKeepAliveMs) return;
-      var c = chr, buf = new Uint8Array([b & 0xff]), p;
+      var tap = tn < tapUntil ? tapId : 0;
+      if (b === lastByte && tap === lastTap && tn - lastWriteAt < CFG.bleKeepAliveMs) return;
+      var c = chr, buf = new Uint8Array([b & 0xff, tap]), p;
+      lastTap = tap;
       inFlight = true; lastByte = b; lastWriteAt = tn;
       try {
         p = useNoResp ? c.writeValueWithoutResponse(buf) : c.writeValue(buf);
@@ -649,7 +675,7 @@ var SteerMath = (function () {
         emit();
       }, function (e) {
         if (c !== chr) return;
-        inFlight = false; lastByte = null; lastError = 'write: ' + errText(e);
+        inFlight = false; lastByte = null; lastTap = -1; lastError = 'write: ' + errText(e);
         if (useNoResp && e && (e.name === 'NotSupportedError' || e.name === 'TypeError')) { useNoResp = false; return; }
         // Writes keep failing although Chrome thinks we are connected: start over.
         if (++writeErrs >= 15 && device) {
@@ -659,6 +685,11 @@ var SteerMath = (function () {
         }
         emit();
       });
+    };
+
+    t.tap = function () {
+      tapId = tapId % 255 + 1;
+      tapUntil = now() + CFG.bleTapMs;
     };
 
     t.status = function () {
@@ -818,6 +849,17 @@ var SteerMath = (function () {
     if (!started) return;
     if (!(document.fullscreenElement || document.webkitFullscreenElement)) goFullscreen();
     requestWakeLock();
+  });
+
+  // Tapping the smiley starts the game on the computer (it ignores the tap once the game runs).
+  $('hubBtn').addEventListener('click', function () {
+    if (!started) return;
+    transport.tap();
+    var hub = $('hub');
+    hub.classList.remove('pop');
+    void hub.getBBox(); // restart the animation
+    hub.classList.add('pop');
+    if (navigator.vibrate) { try { navigator.vibrate(30); } catch (e) {} }
   });
 
   // ---------------------------------------------------------------- dad panel (long-press gear)

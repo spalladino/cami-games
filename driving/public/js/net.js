@@ -1,8 +1,9 @@
 // Net: connects the game (display) to the server's WebSocket hub and reports the phone's steering.
 //
-//   Net.connect(onSteer, onControllerStatus)
+//   Net.connect(onSteer, onControllerStatus, onStart)
 //     onSteer(value)                 value in -1..1 (-1 full left, 0 straight, +1 full right)
 //     onControllerStatus(connected)  true when a phone controller is connected
+//     onStart()                      the phone's smiley was tapped (start the game)
 //
 //   Net.connected            true while the display's own socket to the server is open
 //   Net.controllerConnected  true while a phone controller is connected
@@ -26,6 +27,7 @@
   var retryTimer = null;
   var cbSteer = function () {};
   var cbStatus = function () {};
+  var cbStart = function () {};
 
   function safe(fn, arg) {
     try {
@@ -90,6 +92,8 @@
         safe(cbSteer, v);
       } else if (msg.type === 'controller') {
         setController(msg.connected);
+      } else if (msg.type === 'start') {
+        safe(cbStart);
       }
     };
 
@@ -106,9 +110,10 @@
     };
   }
 
-  function connect(onSteer, onControllerStatus) {
+  function connect(onSteer, onControllerStatus, onStart) {
     if (typeof onSteer === 'function') cbSteer = onSteer;
     if (typeof onControllerStatus === 'function') cbStatus = onControllerStatus;
+    if (typeof onStart === 'function') cbStart = onStart;
     if (started) return Net;
     started = true;
     open();

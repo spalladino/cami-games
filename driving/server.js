@@ -241,6 +241,11 @@ function applySteer(value) {
   broadcastDisplays({ type: 'steer', value: v });
 }
 
+// The phone's smiley was tapped: the game starts if it is on its waiting screen.
+function requestStart() {
+  broadcastDisplays({ type: 'start' });
+}
+
 function addController(c) {
   hub.controllers.add(c);
   announceControllerStatus();
@@ -281,8 +286,9 @@ wss.on('connection', (ws, req) => {
       } catch {
         return;
       }
-      if (!msg || msg.type !== 'steer') return;
-      applySteer(msg.value);
+      if (!msg) return;
+      if (msg.type === 'steer') applySteer(msg.value);
+      else if (msg.type === 'start') requestStart();
     });
   } else {
     hub.displays.add(ws);
@@ -410,6 +416,7 @@ async function main() {
   // Bluetooth steering. Failures only log a warning; everything else keeps working.
   ble = startBle({
     onSteer: applySteer,
+    onStart: requestStart,
     onConnectedChange: (connected) => (connected ? addController(BLE_CONTROLLER) : removeController(BLE_CONTROLLER)),
   });
 }

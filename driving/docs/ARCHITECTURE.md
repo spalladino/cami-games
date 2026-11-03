@@ -37,7 +37,10 @@ connections were blocked on our network).
 
 - Service `8f1c0a20-5b7e-4d2a-9c3e-1a2b3c4d5e60`, characteristic "steer"
   `8f1c0a21-5b7e-4d2a-9c3e-1a2b3c4d5e60`, flags `write-without-response` + `write`, no pairing or encryption.
-- Value: 1 byte, signed int8; steer = byte / 127, clamped to -1..1. The phone writes it ~30 times/second.
+- Value: 2 bytes. Byte 0 is a signed int8; steer = byte / 127, clamped to -1..1. Byte 1 is the tap id: 0, except
+  for 1 s after the smiley in the middle of the wheel is tapped, when it is a nonzero id that changes with every
+  tap. A new nonzero id means "start the game" (a tap survives a few lost writes this way). A 1-byte write is
+  steering only. The phone writes ~30 times/second.
 - Advertisement: connectable, service UUID + local name `Cami`.
 - `ble.js` exports the GATT app (ObjectManager at `/cami/driving`, service, characteristic) and an
   `LEAdvertisement1` (`/cami/driving/adv0`), and registers them on the first adapter (env `BLE_ADAPTER`
@@ -55,10 +58,12 @@ Clients identify themselves via query string: `/ws?role=display` or `/ws?role=co
 Controller → server:
 - `{"type":"steer","value":<number -1..1>}` — sent ~30 times/second while connected.
   -1 = full left, 0 = straight, +1 = full right. Already smoothed, dead-zoned and clamped on the phone.
+- `{"type":"start"}` — the smiley was tapped.
 
 Server → display:
 - `{"type":"steer","value":<number>}` — relayed from the (latest) controller.
 - `{"type":"controller","connected":<bool>}` — sent on display connect and whenever the controller count changes.
+- `{"type":"start"}` — a phone's smiley was tapped (over WebSocket or Bluetooth). The game starts if it is waiting.
 
 Display behaviour without a controller: arrow keys / A-D steer (for dad testing), and the
 waiting screen shows the QR code + URL (`controllerUrl`, i.e. the GitHub Pages page).
@@ -67,7 +72,7 @@ waiting screen shows the QR code + URL (`controllerUrl`, i.e. the GitHub Pages p
 
 Plain browser JS, no build step, no frameworks, no external network requests (the game works offline; only the phone needs to load the controller page from GitHub Pages).
 
-- `public/js/net.js` — `Net.connect(onSteer(value), onControllerStatus(connected))`, auto-reconnects.
+- `public/js/net.js` — `Net.connect(onSteer(value), onControllerStatus(connected), onStart())`, auto-reconnects.
 - `public/js/art.js` — all drawing (graphics agent). Pure canvas 2D drawing functions, no game logic.
 - `public/js/sounds.js` — WebAudio-synthesized sounds, no audio files.
 - `public/js/game.js` — game loop, state, input, uses the three above.

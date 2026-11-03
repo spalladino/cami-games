@@ -20,9 +20,10 @@ The phone steers over **Bluetooth Low Energy**: the computer advertises itself a
 
 1. Bluetooth on, on both the phone and the computer. Nothing needs to be paired.
 2. Open the controller URL in Chrome (scan the QR code on the game screen, or type it).
-3. Tap **Start**. Chrome shows a Bluetooth list; pick **Cami**. The first time, Android asks for the *Nearby devices* permission: allow it. The game notices the phone as soon as steering arrives.
+3. Tap **Start**. Chrome shows a Bluetooth list; pick **Cami**. The first time, Android asks for the *Nearby devices* permission: allow it. The game notices the phone as soon as steering arrives ("Phone connected ✓" under the Start button), but waits.
 4. The page goes fullscreen, locks to landscape and keeps the screen awake.
 5. Hand over the phone sideways, screen facing her, like a steering wheel. Turning it clockwise steers right. Full lock is about 38°, with a small dead zone around straight.
+6. Start the game: tap the **smiley** in the middle of the wheel, or click **Start** on the computer (Enter or Space work too). The game never starts by itself. If the phone drops mid-game, the game pauses and carries on by itself when the phone comes back.
 
 The old Wi-Fi path still works as a fallback: the banner lists `https://<computer-ip>:8443/controller` URLs (self-signed certificate; accept the warning once).
 

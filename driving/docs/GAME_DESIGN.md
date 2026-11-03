@@ -121,8 +121,12 @@ the controller URL under it in large monospace, and three short lines: "Scan wit
 "Accept the certificate warning once (Advanced → Proceed)", "Or press ← → to test with the keyboard". Bottom
 banner, pulsing until clicked: "Click anywhere to turn on sound" with a speaker icon; after the click it shows
 "Sound on" with a check. Any click or key on the page calls `Sounds.unlock()`.
-- Controller connects → `Sounds.connect()`, waiting screen fades out in 0.6 s → STARTING.
-- Dad presses an arrow key → keyboard mode → STARTING (controller events then just take over steering).
+In the middle of the island, inside the car's lap, a green **Start** button with "Phone connected ✓" or
+"No phone yet" under it; it pulses once a phone is connected.
+- Controller connects → `Sounds.connect()`, and the game keeps waiting. It never starts by itself.
+- Start: click the Start button, press Enter/Space or an arrow key, or tap the smiley on the phone's wheel →
+  waiting screen fades out in 0.6 s → STARTING. Without a phone it starts in keyboard mode (a phone that
+  connects later takes over steering).
 
 **STARTING** (3 s). Road and car visible, forward speed 0. The traffic light shows red, yellow, green one per
 second with `Sounds.light(0/1/2)`. Steering already slides the car sideways, so she discovers the wheel before
@@ -163,7 +167,8 @@ Every function must `save()`/`restore()` the context.
 | `Art.drawTrophies(ctx, w, h, count, t)` | Gold trophy stars at the top right. |
 | `Art.drawRainbow(ctx, w, h, progress, t)` | Celebration rainbow; `progress` 0..1 over its 3 s life (grow, hold, fade). |
 | `Art.drawTrafficLight(ctx, x, y, height, step)` | Traffic light; `step` 0 red, 1 yellow, 2 green. |
-| `Art.drawWaiting(ctx, w, h, t, qrImg, url, soundOn)` | Full waiting screen (section 6). `qrImg` is a loaded `Image` or null (draw a placeholder). |
+| `Art.drawWaiting(ctx, w, h, t, qrImg, url, soundOn, phone, hover)` | Full waiting screen (section 6). `qrImg` is a loaded `Image` or null (draw a placeholder). `phone`: a phone is connected; `hover`: the mouse is over Start. |
+| `Art.waitingStartButton(w, h)` | `{x, y, w, h}` of the waiting screen's Start button (for the click hit test). |
 | `Art.drawPaused(ctx, w, h, t, qrImg, url)` | Dim overlay plus the dad card (section 6), drawn over the frozen frame. |
 | `Art.drawSoundOff(ctx, x, y, size)` | Crossed-out speaker icon (top-left hint while audio is locked); x, y = top-left. |
 
